@@ -119,12 +119,35 @@
                 box-shadow: none !important;
                 border: 1px solid #d1d5db !important;
             }
-            #cards-view-container {
+            /* Jika sedang mencetak CV Anggota */
+            body.printing-cv #main-header,
+            body.printing-cv #filter-nav,
+            body.printing-cv #main-content,
+            body.printing-cv #main-footer {
+                display: none !important;
+            }
+            body.printing-cv #cv-view-modal {
+                position: static !important;
+                display: block !important;
+                overflow: visible !important;
+            }
+            body.printing-cv #cv-modal-backdrop {
+                display: none !important;
+            }
+            body.printing-cv #cv-modal-card {
+                box-shadow: none !important;
+                border: none !important;
+                max-width: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+            }
+            /* Jika mencetak halaman utama silsilah */
+            body:not(.printing-cv) #cards-view-container {
                 display: grid !important;
                 grid-template-columns: repeat(2, 1fr) !important;
                 gap: 1rem !important;
             }
-            #tree-view-container {
+            body:not(.printing-cv) #tree-view-container {
                 display: none !important;
             }
         }
@@ -133,42 +156,55 @@
 <body class="antialiased min-h-screen flex flex-col">
 
     <!-- Notifikasi Toast (Pengganti alert) -->
-    <div id="toast-container" class="fixed bottom-5 right-5 z-50 flex flex-col gap-2 pointer-events-none no-print"></div>
+    <div id="toast-container" class="fixed bottom-5 right-5 z-[70] flex flex-col gap-2 pointer-events-none no-print"></div>
+
+    <!-- Input File Tersembunyi untuk Impor JSON -->
+    <input type="file" id="import-json-input" accept=".json,application/json" class="hidden" onchange="handleImportJSON(event)">
 
     <!-- HEADER & IDENTITAS KELUARGA -->
-    <header class="bg-islamic-pattern text-cream-50 border-b-4 border-gold-500 shadow-lg relative overflow-hidden">
-        <!-- Ornamen Sudut -->
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-12 relative z-10">
+    <header id="main-header" class="bg-islamic-pattern text-cream-50 border-b-4 border-gold-500 shadow-lg relative overflow-hidden">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 relative z-10">
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
                 <div class="text-center lg:text-left max-w-3xl">
-                    <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-950/80 border border-gold-500/40 text-gold-400 text-xs sm:text-sm font-semibold tracking-wider uppercase mb-3">
-                        <i class="fa-solid fa-sitemap"></i>
-                        <span>Buku Induk & Jejak Nasab Keluarga</span>
+                    <div class="flex flex-wrap items-center justify-center lg:justify-start gap-2 mb-3">
+                        <div class="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-emerald-950/80 border border-gold-500/40 text-gold-400 text-xs sm:text-sm font-semibold tracking-wider uppercase">
+                            <i class="fa-solid fa-sitemap"></i>
+                            <span>Buku Induk, Foto &amp; CV Keluarga</span>
+                        </div>
+                        <!-- Indikator Status Sinkronisasi Database -->
+                        <div id="db-sync-badge" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950/90 border border-emerald-600/60 text-emerald-300 text-xs font-medium">
+                            <span id="db-sync-dot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
+                            <span id="db-sync-text">Menghubungkan Database...</span>
+                        </div>
                     </div>
                     <h1 class="text-2xl sm:text-4xl lg:text-5xl font-extrabold tracking-tight text-white leading-tight">
                         Silsilah Keluarga Besar <br class="hidden sm:inline">
-                        <span class="text-gold-400 font-serif italic font-bold">Bani H. Ma'shum & Nyai Masrobatun</span>
+                        <span class="text-gold-400 font-serif italic font-bold">Bani H. Ma'shum &amp; Nyai Masrobatun</span>
                     </h1>
                     <p class="mt-3 text-cream-200 text-sm sm:text-base max-w-2xl mx-auto lg:mx-0 leading-relaxed">
-                        Menyambung tali silaturahmi, mengenal leluhur, dan mencatat generasi penerus keluarga besar dari 8 putra-putri Kakek Buyut H. Ma'shum & Nenek Buyut Hj. Masrobatun.
+                        Menyambung tali silaturahmi, mengenal leluhur, dokumentasi foto &amp; biografi CV anggota keluarga dari 8 putra-putri Kakek Buyut H. Ma'shum &amp; Nenek Buyut Hj. Masrobatun.
                     </p>
                 </div>
 
                 <!-- Tombol Aksi Cepat di Header -->
-                <div class="flex flex-wrap items-center justify-center lg:justify-end gap-2.5 no-print">
+                <div class="flex flex-wrap items-center justify-center lg:justify-end gap-2 no-print">
                     <button onclick="openAddGen4Modal()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gold-500 hover:bg-gold-600 text-emerald-950 font-bold text-sm shadow-md transition-all active:scale-95">
                         <i class="fa-solid fa-user-plus"></i>
                         <span>Tambah Cicit (Gen 4)</span>
                     </button>
-                    <button onclick="window.print()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-cream-50 border border-emerald-600 font-semibold text-sm shadow-sm transition-all active:scale-95" title="Cetak atau Simpan sebagai PDF">
+                    <button onclick="printFullTree()" class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-cream-50 border border-emerald-600 font-semibold text-sm shadow-sm transition-all active:scale-95" title="Cetak atau Simpan Silsilah sebagai PDF">
                         <i class="fa-solid fa-print"></i>
-                        <span>Cetak / PDF</span>
+                        <span>Cetak Silsilah</span>
                     </button>
-                    <button onclick="exportDataJSON()" class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-950 text-cream-200 border border-emerald-700 font-medium text-sm transition-all active:scale-95" title="Unduh Cadangan Data">
+                    <button onclick="exportDataJSON()" class="inline-flex items-center gap-2 px-3 py-2.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-950 text-cream-200 border border-emerald-700 font-medium text-sm transition-all active:scale-95" title="Unduh Cadangan Database JSON">
                         <i class="fa-solid fa-download"></i>
                         <span class="hidden sm:inline">Ekspor</span>
                     </button>
-                    <button onclick="confirmResetData()" class="inline-flex items-center gap-2 px-3.5 py-2.5 rounded-xl bg-red-950/70 hover:bg-red-900 text-red-200 border border-red-800/60 font-medium text-sm transition-all active:scale-95" title="Kembalikan ke Data Asli">
+                    <button onclick="triggerImportJSON()" class="inline-flex items-center gap-2 px-3 py-2.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-950 text-cream-200 border border-emerald-700 font-medium text-sm transition-all active:scale-95" title="Pulihkan Database dari File JSON">
+                        <i class="fa-solid fa-upload"></i>
+                        <span class="hidden sm:inline">Impor</span>
+                    </button>
+                    <button onclick="confirmResetData()" class="inline-flex items-center gap-2 px-3 py-2.5 rounded-xl bg-red-950/70 hover:bg-red-900 text-red-200 border border-red-800/60 font-medium text-sm transition-all active:scale-95" title="Kembalikan ke Data Asli">
                         <i class="fa-solid fa-rotate-left"></i>
                         <span class="hidden sm:inline">Reset</span>
                     </button>
@@ -176,14 +212,14 @@
             </div>
 
             <!-- RINGKASAN STATISTIK KELUARGA OTOMATIS -->
-            <div id="stats-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mt-8">
+            <div id="stats-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mt-7">
                 <!-- Diisi otomatis oleh JavaScript -->
             </div>
         </div>
     </header>
 
     <!-- KONTROL PENCARIAN, FILTER & MODE TAMPILAN -->
-    <section class="sticky top-0 z-30 bg-cream-50/95 backdrop-blur-md border-b border-cream-300 shadow-sm no-print">
+    <section id="filter-nav" class="sticky top-0 z-30 bg-cream-50/95 backdrop-blur-md border-b border-cream-300 shadow-sm no-print">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
             <div class="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
                 
@@ -192,7 +228,7 @@
                     <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-sage-600">
                         <i class="fa-solid fa-magnifying-glass"></i>
                     </div>
-                    <input type="text" id="search-input" placeholder="Cari nama anggota keluarga atau pasangan (misal: Arifin, Misbah, Nur...)" 
+                    <input type="text" id="search-input" placeholder="Cari nama, pasangan, profesi, atau domisili..." 
                         class="w-full pl-10 pr-10 py-2.5 bg-white border border-cream-300 rounded-xl text-sm sm:text-base text-gray-800 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-emerald-700 focus:border-emerald-700 transition-all shadow-inner">
                     <button id="clear-search-btn" onclick="clearSearch()" class="hidden absolute inset-y-0 right-0 pr-3.5 flex items-center text-gray-400 hover:text-gray-700">
                         <i class="fa-solid fa-circle-xmark"></i>
@@ -202,9 +238,8 @@
                 <!-- Filter Cabang & Status Pasangan -->
                 <div class="flex flex-wrap sm:flex-nowrap items-center gap-2.5">
                     <div class="relative flex-1 sm:flex-initial">
-                        <select id="branch-filter" class="w-full sm:w-56 appearance-none bg-white border border-cream-300 rounded-xl pl-3.5 pr-9 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-700 cursor-pointer">
+                        <select id="branch-filter" class="w-full sm:w-52 appearance-none bg-white border border-cream-300 rounded-xl pl-3.5 pr-9 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-700 cursor-pointer">
                             <option value="all">Semua Cabang (8 Anak)</option>
-                            <!-- Diisi otomatis oleh JS -->
                         </select>
                         <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
                             <i class="fa-solid fa-chevron-down text-xs"></i>
@@ -212,10 +247,11 @@
                     </div>
 
                     <div class="relative flex-1 sm:flex-initial">
-                        <select id="spouse-filter" class="w-full sm:w-52 appearance-none bg-white border border-cream-300 rounded-xl pl-3.5 pr-9 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-700 cursor-pointer">
-                            <option value="all">Semua Status Pasangan</option>
+                        <select id="spouse-filter" class="w-full sm:w-48 appearance-none bg-white border border-cream-300 rounded-xl pl-3.5 pr-9 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-700 cursor-pointer">
+                            <option value="all">Semua Status</option>
                             <option value="known">Sudah Ada Pasangan</option>
                             <option value="unknown">Pasangan Belum Tercatat</option>
+                            <option value="has-cv">Sudah Ada Foto / CV</option>
                         </select>
                         <div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-gray-500">
                             <i class="fa-solid fa-chevron-down text-xs"></i>
@@ -245,21 +281,27 @@
     </section>
 
     <!-- KONTEN UTAMA -->
-    <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
+    <main id="main-content" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 
         <!-- KARTU INDUK LELUHUR (GENERASI 1) -->
         <div class="mb-8 bg-white rounded-2xl border-2 border-gold-400/70 shadow-md overflow-hidden print-break-inside-avoid">
-            <div class="bg-gradient-to-r from-emerald-900 via-emerald-850 to-emerald-900 px-5 py-3 flex items-center justify-between text-cream-100">
+            <div class="bg-gradient-to-r from-emerald-900 via-emerald-850 to-emerald-900 px-5 py-3 flex flex-wrap items-center justify-between gap-2 text-cream-100">
                 <span class="text-xs font-bold uppercase tracking-widest text-gold-400 flex items-center gap-2">
-                    <i class="fa-solid fa-crown"></i> Generasi 1 • Leluhur Utama (Kakek & Nenek Buyut)
+                    <i class="fa-solid fa-crown"></i> Generasi 1 • Leluhur Utama (Kakek &amp; Nenek Buyut)
                 </span>
-                <button onclick="openDetailModal('gen1', 'root')" class="no-print text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded-lg transition-colors flex items-center gap-1.5">
-                    <i class="fa-solid fa-pen-to-square"></i> Edit Info
-                </button>
+                <div class="flex items-center gap-2 no-print">
+                    <button onclick="openCVModal('gen1', 'root')" class="text-xs bg-gold-500 hover:bg-gold-600 text-emerald-950 font-bold px-3 py-1 rounded-lg transition-colors flex items-center gap-1.5">
+                        <i class="fa-solid fa-id-card"></i> Lihat Biografi / CV
+                    </button>
+                    <button onclick="openEditModal('gen1', 'root')" class="text-xs bg-white/10 hover:bg-white/20 text-white px-3 py-1 rounded-lg transition-colors flex items-center gap-1.5">
+                        <i class="fa-solid fa-pen-to-square"></i> Edit &amp; Foto
+                    </button>
+                </div>
             </div>
             <div class="p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-b from-cream-50 to-white">
                 <div class="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-                    <div class="w-16 h-16 rounded-2xl bg-emerald-900 text-gold-400 flex items-center justify-center text-2xl font-serif font-bold shadow-inner border border-gold-400/50 shrink-0">
+                    <!-- Avatar Foto Leluhur -->
+                    <div id="root-avatar-container" onclick="openCVModal('gen1', 'root')" class="cursor-pointer w-20 h-20 rounded-2xl bg-emerald-900 text-gold-400 flex items-center justify-center text-3xl font-serif font-bold shadow-md border-2 border-gold-400/70 shrink-0 overflow-hidden hover:scale-105 transition-transform">
                         <i class="fa-solid fa-people-roof"></i>
                     </div>
                     <div>
@@ -269,11 +311,12 @@
                         <p id="root-couple-desc" class="text-sm text-gray-600 mt-1">
                             Dikaruniai <strong class="text-emerald-900">8 Putra-Putri</strong> (Generasi 2) dan <strong id="root-cucu-count" class="text-emerald-900">51 Cucu</strong> (Generasi 3).
                         </p>
+                        <p id="root-bio-preview" class="text-xs text-sage-700 mt-1 max-w-2xl line-clamp-1"></p>
                     </div>
                 </div>
-                <div class="flex items-center gap-2 no-print">
+                <div class="flex items-center gap-2 no-print shrink-0">
                     <button onclick="expandAllBranches(true)" class="px-3 py-2 rounded-xl bg-sage-100 hover:bg-sage-200 text-sage-700 text-xs font-semibold transition-colors">
-                        <i class="fa-solid fa-angles-down mr-1"></i> Buka Semua Cabang
+                        <i class="fa-solid fa-angles-down mr-1"></i> Buka Semua
                     </button>
                     <button onclick="expandAllBranches(false)" class="px-3 py-2 rounded-xl bg-cream-200 hover:bg-cream-300 text-gray-700 text-xs font-semibold transition-colors">
                         <i class="fa-solid fa-angles-up mr-1"></i> Tutup Semua
@@ -284,7 +327,7 @@
 
         <!-- MODE 1: TAMPILAN KARTU & DAFTAR CABANG (ACCORDION / GRID) -->
         <div id="cards-view-container" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Kartu Cabang Generasi 2 & Daftar Anak Generasi 3 akan dirender di sini -->
+            <!-- Kartu Cabang Generasi 2 & Daftar Anak Generasi 3 dirender di sini -->
         </div>
 
         <!-- MODE 2: TAMPILAN POHON VISUAL / DIAGRAM HIERARKI -->
@@ -294,7 +337,7 @@
                 <div class="bg-cream-100 px-4 py-3 border-b border-cream-300 flex flex-wrap items-center justify-between gap-3">
                     <div class="flex items-center gap-2 text-sm text-sage-700 font-medium">
                         <i class="fa-solid fa-circle-info text-emerald-800"></i>
-                        <span>Klik pada node cabang (Anak ke-1 s/d ke-8) untuk membuka/menutup daftar keturunannya. Geser layar atau gunakan tombol zoom.</span>
+                        <span>Klik anggota untuk melihat <strong>CV &amp; Foto</strong>, atau klik tombol cabang untuk buka/tutup keturunan.</span>
                     </div>
                     <div class="flex items-center gap-1.5">
                         <button onclick="zoomTree(-0.1)" class="w-9 h-9 rounded-lg bg-white border border-cream-300 hover:bg-cream-200 text-gray-700 flex items-center justify-center shadow-sm" title="Perkecil">
@@ -324,9 +367,9 @@
             <div class="w-16 h-16 rounded-full bg-cream-200 text-sage-600 flex items-center justify-center text-2xl mx-auto mb-4">
                 <i class="fa-solid fa-magnifying-glass"></i>
             </div>
-            <h3 class="text-lg font-bold text-gray-900">Nama Tidak Ditemukan</h3>
+            <h3 class="text-lg font-bold text-gray-900">Data Tidak Ditemukan</h3>
             <p class="text-sm text-gray-600 max-w-md mx-auto mt-1">
-                Tidak ada anggota keluarga atau pasangan yang cocok dengan kata kunci atau filter yang dipilih.
+                Tidak ada anggota keluarga yang cocok dengan kata kunci atau filter yang dipilih.
             </p>
             <button onclick="resetAllFilters()" class="mt-4 px-5 py-2.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white text-sm font-semibold transition-colors">
                 Tampilkan Semua Keluarga
@@ -336,92 +379,233 @@
     </main>
 
     <!-- FOOTER -->
-    <footer class="bg-emerald-950 text-cream-200 border-t border-emerald-800 mt-12 py-6 no-print">
+    <footer id="main-footer" class="bg-emerald-950 text-cream-200 border-t border-emerald-800 mt-12 py-6 no-print">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs sm:text-sm">
             <div class="flex items-center gap-2">
                 <span class="w-2.5 h-2.5 rounded-full bg-gold-400"></span>
-                <span>Arsip Silsilah Keluarga Besar <strong>Bani H. Ma'shum & Nyai Masrobatun</strong></span>
+                <span>Arsip Digital &amp; Database Keluarga Besar <strong>Bani H. Ma'shum &amp; Nyai Masrobatun</strong></span>
             </div>
             <p class="text-cream-300/80 text-center sm:text-right">
-                Perubahan data disimpan otomatis di perangkat Anda. Gunakan tombol <strong>Cetak / PDF</strong> untuk membagikan ke keluarga.
+                Dilengkapi Foto Profil, CV Anggota &amp; Sinkronisasi Database Real-Time.
             </p>
         </div>
     </footer>
 
-    <!-- MODAL DETAIL & EDITOR ANGGOTA KELUARGA -->
-    <div id="detail-modal" class="fixed inset-0 z-50 hidden overflow-y-auto no-print" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+    <!-- ===================================================================== -->
+    <!-- MODAL 1: TAMPILAN CV / BIOGRAFI LENGKAP ANGGOTA (ELEGAN & SIAP CETAK)  -->
+    <!-- ===================================================================== -->
+    <div id="cv-view-modal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true">
         <div class="flex items-end sm:items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <!-- Overlay gelap -->
-            <div onclick="closeDetailModal()" class="fixed inset-0 bg-emerald-950/70 backdrop-blur-xs transition-opacity"></div>
-
+            <div id="cv-modal-backdrop" onclick="closeCVModal()" class="fixed inset-0 bg-emerald-950/75 backdrop-blur-xs transition-opacity no-print"></div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
-            <!-- Konten Modal -->
-            <div class="relative inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg w-full border border-cream-300">
+            <div id="cv-modal-card" class="relative inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl w-full border border-cream-300">
+                <!-- Toolbar Atas Modal CV (Sembunyi saat print) -->
+                <div class="bg-emerald-950 px-6 py-3 flex items-center justify-between text-cream-100 border-b border-gold-500/40 no-print">
+                    <span class="text-xs font-bold uppercase tracking-wider text-gold-400 flex items-center gap-2">
+                        <i class="fa-solid fa-address-card"></i> Curriculum Vitae &amp; Biografi Keluarga
+                    </span>
+                    <div class="flex items-center gap-2">
+                        <button onclick="printMemberCV()" class="px-3 py-1.5 rounded-lg bg-emerald-800 hover:bg-emerald-700 text-white text-xs font-semibold flex items-center gap-1.5 transition-colors">
+                            <i class="fa-solid fa-print"></i> Cetak CV
+                        </button>
+                        <button id="cv-btn-switch-edit" class="px-3 py-1.5 rounded-lg bg-gold-500 hover:bg-gold-600 text-emerald-950 text-xs font-bold flex items-center gap-1.5 transition-colors">
+                            <i class="fa-solid fa-pen-to-square"></i> Edit Profil &amp; Foto
+                        </button>
+                        <button onclick="closeCVModal()" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
+                            <i class="fa-solid fa-xmark"></i>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Konten Dokumen CV -->
+                <div id="cv-document-content" class="bg-white">
+                    <!-- Dirender dinamis oleh JS -->
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 2: EDITOR ANGGOTA, UNGGAH FOTO & FORM DATA CV                   -->
+    <!-- ===================================================================== -->
+    <div id="detail-modal" class="fixed inset-0 z-50 hidden overflow-y-auto no-print" aria-labelledby="modal-title" role="dialog" aria-modal="true">
+        <div class="flex items-end sm:items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
+            <div onclick="closeDetailModal()" class="fixed inset-0 bg-emerald-950/75 backdrop-blur-xs transition-opacity"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
+
+            <div class="relative inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-2xl w-full border border-cream-300">
                 <div class="bg-emerald-900 px-6 py-4 flex items-center justify-between text-white border-b border-gold-500/40">
                     <div>
                         <span id="modal-gen-badge" class="text-[11px] font-bold uppercase tracking-wider px-2.5 py-0.5 rounded-full bg-gold-500 text-emerald-950">Generasi 3</span>
-                        <h3 id="modal-title" class="text-lg font-bold mt-1">Detail Anggota Keluarga</h3>
+                        <h3 id="modal-title" class="text-lg font-bold mt-1">Edit Profil, Foto &amp; CV Anggota</h3>
                     </div>
                     <button onclick="closeDetailModal()" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 flex items-center justify-center text-white transition-colors">
                         <i class="fa-solid fa-xmark"></i>
                     </button>
                 </div>
 
-                <form id="member-edit-form" onsubmit="saveMemberChanges(event)" class="p-6 space-y-4">
+                <!-- Tab Navigasi Form Edit -->
+                <div class="flex border-b border-cream-300 bg-cream-100 px-6 pt-2 gap-2">
+                    <button type="button" id="tab-btn-basic" onclick="switchEditTab('basic')" class="px-4 py-2.5 text-xs sm:text-sm font-bold rounded-t-xl bg-white text-emerald-950 border-t border-x border-cream-300 -mb-px flex items-center gap-1.5">
+                        <i class="fa-solid fa-user-pen text-emerald-700"></i> Identitas &amp; Foto
+                    </button>
+                    <button type="button" id="tab-btn-cv" onclick="switchEditTab('cv')" class="px-4 py-2.5 text-xs sm:text-sm font-semibold rounded-t-xl text-gray-600 hover:text-emerald-900 flex items-center gap-1.5">
+                        <i class="fa-solid fa-id-card text-gold-600"></i> Biodata &amp; CV Lengkap
+                    </button>
+                    <button type="button" id="tab-btn-children" onclick="switchEditTab('children')" class="hidden px-4 py-2.5 text-xs sm:text-sm font-semibold rounded-t-xl text-gray-600 hover:text-emerald-900 flex items-center gap-1.5">
+                        <i class="fa-solid fa-children text-sage-600"></i> Keturunan (Gen 4)
+                    </button>
+                </div>
+
+                <form id="member-edit-form" onsubmit="saveMemberChanges(event)" class="p-6 max-h-[75vh] overflow-y-auto">
                     <input type="hidden" id="edit-level">
                     <input type="hidden" id="edit-branch-id">
                     <input type="hidden" id="edit-child-id">
+                    <input type="hidden" id="edit-gen4-id">
 
-                    <!-- Info Garis Keturunan (Read-only kontekstual) -->
-                    <div id="modal-lineage-info" class="p-3.5 rounded-xl bg-cream-100 border border-cream-300 text-xs sm:text-sm text-sage-700 space-y-1">
-                        <!-- Diisi dinamis -->
+                    <!-- TAB 1: IDENTITAS DASAR & FOTO PROFIL -->
+                    <div id="edit-tab-basic" class="space-y-4">
+                        <div id="modal-lineage-info" class="p-3 rounded-xl bg-cream-100 border border-cream-300 text-xs sm:text-sm text-sage-700 space-y-1">
+                            <!-- Diisi dinamis -->
+                        </div>
+
+                        <!-- Pengaturan Foto Profil -->
+                        <div class="p-4 rounded-xl bg-sage-50 border border-sage-200 flex flex-col sm:flex-row items-center gap-4">
+                            <div id="edit-photo-preview" class="w-24 h-24 rounded-2xl bg-emerald-900 text-gold-400 flex items-center justify-center text-3xl font-bold border-2 border-gold-400 shadow-sm overflow-hidden shrink-0">
+                                <i class="fa-solid fa-user"></i>
+                            </div>
+                            <div class="flex-1 w-full space-y-2.5 text-center sm:text-left">
+                                <label class="block text-sm font-bold text-emerald-950">Foto Profil Anggota</label>
+                                <div class="flex flex-wrap items-center justify-center sm:justify-start gap-2">
+                                    <label class="cursor-pointer inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white text-xs font-bold shadow-xs transition-colors">
+                                        <i class="fa-solid fa-camera"></i>
+                                        <span>Unggah dari Perangkat</span>
+                                        <input type="file" id="edit-photo-file" accept="image/*" class="hidden" onchange="handlePhotoUpload(event)">
+                                    </label>
+                                    <button type="button" id="btn-remove-photo" onclick="removeMemberPhoto()" class="hidden px-3 py-2 rounded-xl bg-red-100 hover:bg-red-200 text-red-700 text-xs font-semibold transition-colors">
+                                        <i class="fa-solid fa-trash-can mr-1"></i> Hapus Foto
+                                    </button>
+                                </div>
+                                <div>
+                                    <input type="url" id="edit-photo-url" oninput="handlePhotoUrlInput(this.value)" placeholder="Atau tempel tautan URL foto (https://...)" class="w-full px-3 py-1.5 rounded-lg border border-gray-300 bg-white text-xs focus:ring-2 focus:ring-emerald-700">
+                                </div>
+                                <p class="text-[11px] text-gray-500">Foto otomatis dikompresi agar ringan dan cepat dimuat oleh seluruh keluarga.</p>
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="edit-name" class="block text-sm font-bold text-gray-800 mb-1">Nama Lengkap Anggota *</label>
+                                <input type="text" id="edit-name" required class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-700 text-sm font-semibold">
+                            </div>
+
+                            <div>
+                                <label for="edit-spouse" class="block text-sm font-bold text-gray-800 mb-1">Nama Pasangan (Suami / Istri)</label>
+                                <input type="text" id="edit-spouse" placeholder="Kosongkan jika belum menikah" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-700 text-sm">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="edit-status" class="block text-sm font-bold text-gray-800 mb-1">Status</label>
+                                <select id="edit-status" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-700 text-sm bg-white">
+                                    <option value="hidup">Masih Hidup</option>
+                                    <option value="wafat">Almarhum / Almarhumah</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label for="edit-notes" class="block text-sm font-bold text-gray-800 mb-1">Catatan Singkat Silsilah</label>
+                                <input type="text" id="edit-notes" placeholder="Contoh: Anak pertama, Panggilan akrab..." class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-700 text-sm">
+                            </div>
+                        </div>
                     </div>
 
-                    <div>
-                        <label for="edit-name" class="block text-sm font-bold text-gray-800 mb-1">Nama Anggota Keluarga</label>
-                        <input type="text" id="edit-name" required class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-700 focus:border-emerald-700 text-sm sm:text-base font-medium">
+                    <!-- TAB 2: BIODATA & CV LENGKAP -->
+                    <div id="edit-tab-cv" class="hidden space-y-4">
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="cv-birth-place" class="block text-xs font-bold uppercase tracking-wider text-sage-700 mb-1">Tempat Lahir</label>
+                                <input type="text" id="cv-birth-place" placeholder="Contoh: Ponorogo" class="w-full px-3.5 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-700 text-sm">
+                            </div>
+                            <div>
+                                <label for="cv-birth-date" class="block text-xs font-bold uppercase tracking-wider text-sage-700 mb-1">Tanggal Lahir</label>
+                                <input type="text" id="cv-birth-date" placeholder="Contoh: 17 Agustus 1985" class="w-full px-3.5 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-700 text-sm">
+                            </div>
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="cv-death-date" class="block text-xs font-bold uppercase tracking-wider text-sage-700 mb-1">Tanggal Wafat (Jika Almarhum/ah)</label>
+                                <input type="text" id="cv-death-date" placeholder="Kosongkan jika masih hidup" class="w-full px-3.5 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-700 text-sm">
+                            </div>
+                            <div>
+                                <label for="cv-phone" class="block text-xs font-bold uppercase tracking-wider text-sage-700 mb-1">No. WhatsApp / Telepon</label>
+                                <input type="text" id="cv-phone" placeholder="Contoh: 0812-3456-7890" class="w-full px-3.5 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-700 text-sm">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="cv-address" class="block text-xs font-bold uppercase tracking-wider text-sage-700 mb-1">Alamat Domisili Lengkap</label>
+                            <input type="text" id="cv-address" placeholder="Contoh: Jl. Soekarno Hatta No. 12, Ponorogo, Jawa Timur" class="w-full px-3.5 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-700 text-sm">
+                        </div>
+
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                            <div>
+                                <label for="cv-education" class="block text-xs font-bold uppercase tracking-wider text-sage-700 mb-1">Pendidikan Terakhir / Almamater</label>
+                                <input type="text" id="cv-education" placeholder="Contoh: S1 Pendidikan Agama Islam - UIN" class="w-full px-3.5 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-700 text-sm">
+                            </div>
+                            <div>
+                                <label for="cv-occupation" class="block text-xs font-bold uppercase tracking-wider text-sage-700 mb-1">Pekerjaan / Profesi / Instansi</label>
+                                <input type="text" id="cv-occupation" placeholder="Contoh: Guru / Wiraswasta / Dokter" class="w-full px-3.5 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-700 text-sm">
+                            </div>
+                        </div>
+
+                        <div>
+                            <label for="cv-achievements" class="block text-xs font-bold uppercase tracking-wider text-sage-700 mb-1">Keahlian / Pengalaman Organisasi / Prestasi</label>
+                            <textarea id="cv-achievements" rows="2" placeholder="Contoh: Pengurus Takmir Masjid, Ketua Karang Taruna, Wirausaha Kuliner..." class="w-full px-3.5 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-700 text-sm"></textarea>
+                        </div>
+
+                        <div>
+                            <label for="cv-bio" class="block text-xs font-bold uppercase tracking-wider text-sage-700 mb-1">Biografi Singkat / Pesan &amp; Kesan Keluarga</label>
+                            <textarea id="cv-bio" rows="3" placeholder="Tuliskan kisah singkat, hobi, atau pesan silaturahmi untuk keluarga besar..." class="w-full px-3.5 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-700 text-sm"></textarea>
+                        </div>
                     </div>
 
-                    <div>
-                        <label for="edit-spouse" class="block text-sm font-bold text-gray-800 mb-1">Nama Pasangan (Suami / Istri)</label>
-                        <input type="text" id="edit-spouse" placeholder="Kosongkan jika belum diketahui / belum menikah" class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-700 focus:border-emerald-700 text-sm sm:text-base">
-                        <p class="text-xs text-gray-500 mt-1">Jika dikosongkan, sistem akan menampilkan label <em>"Pasangan belum tercatat"</em>.</p>
-                    </div>
-
-                    <div>
-                        <label for="edit-notes" class="block text-sm font-bold text-gray-800 mb-1">Catatan Tambahan / Domisili (Opsional)</label>
-                        <input type="text" id="edit-notes" placeholder="Contoh: Tinggal di Ponorogo, Almarhum, dll." class="w-full px-3.5 py-2 rounded-xl border border-gray-300 focus:ring-2 focus:ring-emerald-700 focus:border-emerald-700 text-sm">
-                    </div>
-
-                    <!-- Daftar Cicit (Generasi 4) jika mengedit Generasi 3 -->
-                    <div id="gen4-section" class="hidden pt-3 border-t border-cream-200">
-                        <div class="flex items-center justify-between mb-2">
+                    <!-- TAB 3: DAFTAR KETURUNAN GENERASI 4 (KHUSUS GEN 3) -->
+                    <div id="edit-tab-children" class="hidden space-y-4">
+                        <div class="flex items-center justify-between">
                             <label class="text-sm font-bold text-emerald-950 flex items-center gap-1.5">
-                                <i class="fa-solid fa-children text-gold-600"></i> Daftar Anak / Cicit (Generasi 4)
+                                <i class="fa-solid fa-children text-gold-600"></i> Daftar Putra/Putri (Generasi 4 / Cicit)
                             </label>
                         </div>
-                        <div id="gen4-list" class="space-y-2 max-h-40 overflow-y-auto mb-2.5 pr-1">
+                        <div id="gen4-list" class="space-y-2 max-h-52 overflow-y-auto pr-1">
                             <!-- List cicit -->
                         </div>
-                        <div class="flex gap-2">
-                            <input type="text" id="new-gen4-name" placeholder="Nama anak (Generasi 4)..." class="flex-1 px-3 py-2 rounded-xl border border-gray-300 text-sm focus:ring-2 focus:ring-emerald-700">
-                            <button type="button" onclick="addGen4Inline()" class="px-3.5 py-2 rounded-xl bg-sage-600 hover:bg-sage-700 text-white text-xs font-bold shrink-0">
-                                + Tambah
-                            </button>
+                        <div class="p-3 rounded-xl bg-cream-100 border border-cream-300 space-y-2">
+                            <p class="text-xs font-bold text-sage-700">Tambah Anak (Generasi 4):</p>
+                            <div class="flex flex-col sm:flex-row gap-2">
+                                <input type="text" id="new-gen4-name" placeholder="Nama lengkap anak..." class="flex-1 px-3 py-2 rounded-xl border border-gray-300 bg-white text-sm focus:ring-2 focus:ring-emerald-700">
+                                <input type="text" id="new-gen4-spouse" placeholder="Pasangan (opsional)..." class="sm:w-44 px-3 py-2 rounded-xl border border-gray-300 bg-white text-sm focus:ring-2 focus:ring-emerald-700">
+                                <button type="button" onclick="addGen4Inline()" class="px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white text-xs font-bold shrink-0">
+                                    + Tambah
+                                </button>
+                            </div>
                         </div>
                     </div>
 
-                    <div class="pt-4 border-t border-gray-200 flex items-center justify-between gap-3">
+                    <!-- Footer Tombol Simpan -->
+                    <div class="pt-5 mt-5 border-t border-gray-200 flex items-center justify-between gap-3">
                         <button type="button" id="btn-delete-member" onclick="deleteCurrentMember()" class="hidden px-3.5 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs sm:text-sm font-bold transition-colors">
-                            <i class="fa-solid fa-trash-can mr-1"></i> Hapus
+                            <i class="fa-solid fa-trash-can mr-1"></i> Hapus Anggota
                         </button>
                         <div class="flex items-center gap-2 ml-auto">
                             <button type="button" onclick="closeDetailModal()" class="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold">
                                 Batal
                             </button>
-                            <button type="submit" class="px-5 py-2.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white text-sm font-bold shadow-md">
-                                Simpan Perubahan
+                            <button type="submit" class="px-5 py-2.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white text-sm font-bold shadow-md flex items-center gap-2">
+                                <i class="fa-solid fa-cloud-arrow-up"></i>
+                                <span>Simpan ke Database</span>
                             </button>
                         </div>
                     </div>
@@ -430,11 +614,13 @@
         </div>
     </div>
 
-    <!-- MODAL TAMBAH CICIT (GENERASI 4) CEPAT -->
+    <!-- ===================================================================== -->
+    <!-- MODAL 3: TAMBAH CICIT (GENERASI 4) CEPAT                              -->
+    <!-- ===================================================================== -->
     <div id="add-gen4-modal" class="fixed inset-0 z-50 hidden overflow-y-auto no-print" role="dialog" aria-modal="true">
         <div class="flex items-end sm:items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            <div onclick="closeAddGen4Modal()" class="fixed inset-0 bg-emerald-950/70 backdrop-blur-xs transition-opacity"></div>
-            <span class="hidden sm:inline-block sm:align-middle sm:h-screen">&#8203;</span>
+            <div onclick="closeAddGen4Modal()" class="fixed inset-0 bg-emerald-950/75 backdrop-blur-xs transition-opacity"></div>
+            <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
             <div class="relative inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-md w-full border border-cream-300">
                 <div class="bg-emerald-900 px-6 py-4 flex items-center justify-between text-white">
@@ -449,15 +635,13 @@
                 <form onsubmit="submitQuickAddGen4(event)" class="p-6 space-y-4">
                     <div>
                         <label class="block text-sm font-bold text-gray-800 mb-1">1. Pilih Cabang Keluarga (Generasi 2)</label>
-                        <select id="quick-branch-select" onchange="populateQuickParentSelect()" required class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm font-medium focus:ring-2 focus:ring-emerald-700">
-                            <!-- Diisi JS -->
+                        <select id="quick-branch-select" onchange="populateQuickParentSelect()" required class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm font-medium focus:ring-2 focus:ring-emerald-700 bg-white">
                         </select>
                     </div>
 
                     <div>
                         <label class="block text-sm font-bold text-gray-800 mb-1">2. Pilih Orang Tua (Generasi 3 / Cucu)</label>
-                        <select id="quick-parent-select" required class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm font-medium focus:ring-2 focus:ring-emerald-700">
-                            <!-- Diisi JS -->
+                        <select id="quick-parent-select" required class="w-full px-3.5 py-2.5 rounded-xl border border-gray-300 text-sm font-medium focus:ring-2 focus:ring-emerald-700 bg-white">
                         </select>
                     </div>
 
@@ -480,204 +664,356 @@
         </div>
     </div>
 
-    <!-- MODAL KONFIRMASI RESET DATA -->
+    <!-- ===================================================================== -->
+    <!-- MODAL 4: KONFIRMASI RESET DATA                                        -->
+    <!-- ===================================================================== -->
     <div id="reset-modal" class="fixed inset-0 z-50 hidden overflow-y-auto no-print" role="dialog" aria-modal="true">
         <div class="flex items-center justify-center min-h-screen px-4 text-center">
-            <div onclick="closeResetModal()" class="fixed inset-0 bg-emerald-950/70 backdrop-blur-xs"></div>
+            <div onclick="closeResetModal()" class="fixed inset-0 bg-emerald-950/75 backdrop-blur-xs"></div>
             <div class="relative bg-white rounded-2xl max-w-md w-full p-6 text-left shadow-2xl border border-cream-300">
                 <div class="w-12 h-12 rounded-full bg-red-100 text-red-700 flex items-center justify-center text-xl mb-4">
                     <i class="fa-solid fa-triangle-exclamation"></i>
                 </div>
                 <h3 class="text-lg font-bold text-gray-900">Kembalikan ke Data Silsilah Awal?</h3>
                 <p class="text-sm text-gray-600 mt-2 leading-relaxed">
-                    Semua perubahan nama, pasangan, atau tambahan Generasi 4 yang Anda simpan di perangkat ini akan dihapus dan dikembalikan ke catatan asli Bani H. Ma'shum & Nyai Masrobatun.
+                    Semua foto, data CV, perubahan nama, atau tambahan Generasi 4 akan dihapus dan dikembalikan ke catatan asli Bani H. Ma'shum &amp; Nyai Masrobatun. (Disarankan klik <strong>Ekspor</strong> terlebih dahulu untuk cadangan).
                 </p>
                 <div class="mt-6 flex justify-end gap-2.5">
                     <button onclick="closeResetModal()" class="px-4 py-2 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-sm font-semibold">Batal</button>
-                    <button onclick="executeResetData()" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold">Ya, Reset Data</button>
+                    <button onclick="executeResetData()" class="px-4 py-2 rounded-xl bg-red-600 hover:bg-red-700 text-white text-sm font-bold">Ya, Reset Database</button>
                 </div>
             </div>
         </div>
     </div>
 
-    <script>
+    <!-- ===================================================================== -->
+    <!-- SCRIPT UTAMA & INTEGRASI DATABASE REAL-TIME                           -->
+    <!-- ===================================================================== -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
         // =========================================================================
         // 1. DATA INDUK SILSILAH BANI H. MA'SHUM & NYAI MASROBATUN (AKURAT)
         // =========================================================================
-        const STORAGE_KEY = 'silsilah_bani_mashum_v1';
+        const IDB_NAME = 'SilsilahBaniMashumDB';
+        const IDB_STORE = 'familyStore';
+        const IDB_KEY = 'mainTree';
 
         const INITIAL_FAMILY_DATA = {
             root: {
                 name: "H. Ma'shum",
                 spouse: "Nyai Masrobatun",
-                notes: "Leluhur Utama Keluarga Besar Bani H. Ma'shum & Masrobatun"
+                status: "wafat",
+                photo: "",
+                notes: "Leluhur Utama Keluarga Besar Bani H. Ma'shum & Nyai Masrobatun",
+                cv: {
+                    birthPlace: "",
+                    birthDate: "",
+                    deathDate: "",
+                    phone: "",
+                    address: "",
+                    education: "",
+                    occupation: "Sesepuh & Pendiri Keluarga Besar Bani H. Ma'shum",
+                    achievements: "Membangun fondasi keluarga besar yang rukun, religius, dan berakhlak mulia.",
+                    bio: "Kakek Buyut H. Ma'shum dan Nenek Buyut Nyai Masrobatun adalah leluhur utama yang menurunkan 8 cabang keluarga besar. Semoga amal ibadah beliau berdua diterima di sisi Allah SWT."
+                }
             },
             branches: [
                 {
-                    id: "b1",
-                    order: 1,
-                    name: "Arifin",
-                    spouse: "Halimah",
-                    notes: "",
-                    expanded: true,
+                    id: "b1", order: 1, name: "Arifin", spouse: "Halimah", status: "hidup", photo: "", notes: "", expanded: true, cv: {},
                     children: [
-                        { id: "b1-c1", order: 1, name: "Misbah", spouse: "Mbakyah", notes: "", children: [] },
-                        { id: "b1-c2", order: 2, name: "Lailah", spouse: "Manilan", notes: "", children: [] },
-                        { id: "b1-c3", order: 3, name: "Arifah", spouse: "Sugeng", notes: "", children: [] },
-                        { id: "b1-c4", order: 4, name: "Basori", spouse: "Nur", notes: "", children: [] },
-                        { id: "b1-c5", order: 5, name: "Fauzi", spouse: "", notes: "", children: [] },
-                        { id: "b1-c6", order: 6, name: "Siti", spouse: "", notes: "", children: [] },
-                        { id: "b1-c7", order: 7, name: "Aisyah", spouse: "", notes: "", children: [] }
+                        { id: "b1-c1", order: 1, name: "Misbah", spouse: "Mbakyah", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b1-c2", order: 2, name: "Lailah", spouse: "Manilan", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b1-c3", order: 3, name: "Arifah", spouse: "Sugeng", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b1-c4", order: 4, name: "Basori", spouse: "Nur", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b1-c5", order: 5, name: "Fauzi", spouse: "", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b1-c6", order: 6, name: "Siti", spouse: "", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b1-c7", order: 7, name: "Aisyah", spouse: "", status: "hidup", photo: "", notes: "", cv: {}, children: [] }
                     ]
                 },
                 {
-                    id: "b2",
-                    order: 2,
-                    name: "Suaidah",
-                    spouse: "Fadlan",
-                    notes: "",
-                    expanded: true,
+                    id: "b2", order: 2, name: "Suaidah", spouse: "Fadlan", status: "hidup", photo: "", notes: "", expanded: true, cv: {},
                     children: [
-                        { id: "b2-c1", order: 1, name: "Nurul Fathona", spouse: "M. Toyib", notes: "", children: [] },
-                        { id: "b2-c2", order: 2, name: "Abdullah", spouse: "", notes: "", children: [] },
-                        { id: "b2-c3", order: 3, name: "Sulton", spouse: "Masnunah", notes: "", children: [] },
-                        { id: "b2-c4", order: 4, name: "Aliwafa", spouse: "Mbak Nur", notes: "", children: [] },
-                        { id: "b2-c5", order: 5, name: "Rosyad", spouse: "Mbak Wah", notes: "", children: [] },
-                        { id: "b2-c6", order: 6, name: "Azhar", spouse: "Nanik", notes: "", children: [] },
-                        { id: "b2-c7", order: 7, name: "Afan", spouse: "Atikah", notes: "", children: [] },
-                        { id: "b2-c8", order: 8, name: "Hidayah", spouse: "Gunawan", notes: "", children: [] },
-                        { id: "b2-c9", order: 9, name: "Anah", spouse: "Amin", notes: "", children: [] }
+                        { id: "b2-c1", order: 1, name: "Nurul Fathona", spouse: "M. Toyib", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b2-c2", order: 2, name: "Abdullah", spouse: "", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b2-c3", order: 3, name: "Sulton", spouse: "Masnunah", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b2-c4", order: 4, name: "Aliwafa", spouse: "Mbak Nur", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b2-c5", order: 5, name: "Rosyad", spouse: "Mbak Wah", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b2-c6", order: 6, name: "Azhar", spouse: "Nanik", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b2-c7", order: 7, name: "Afan", spouse: "Atikah", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b2-c8", order: 8, name: "Hidayah", spouse: "Gunawan", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b2-c9", order: 9, name: "Anah", spouse: "Amin", status: "hidup", photo: "", notes: "", cv: {}, children: [] }
                     ]
                 },
                 {
-                    id: "b3",
-                    order: 3,
-                    name: "Suainah",
-                    spouse: "Taufiq",
-                    notes: "",
-                    expanded: true,
+                    id: "b3", order: 3, name: "Suainah", spouse: "Taufiq", status: "hidup", photo: "", notes: "", expanded: true, cv: {},
                     children: [
-                        { id: "b3-c1", order: 1, name: "Mochtar Hanim", spouse: "Bahriah", notes: "", children: [] },
-                        { id: "b3-c2", order: 2, name: "Wasyil", spouse: "Maslaha", notes: "", children: [] },
-                        { id: "b3-c3", order: 3, name: "Huda", spouse: "Ratna", notes: "", children: [] }
+                        { id: "b3-c1", order: 1, name: "Mochtar Hanim", spouse: "Bahriah", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b3-c2", order: 2, name: "Wasyil", spouse: "Maslaha", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b3-c3", order: 3, name: "Huda", spouse: "Ratna", status: "hidup", photo: "", notes: "", cv: {}, children: [] }
                     ]
                 },
                 {
-                    id: "b4",
-                    order: 4,
-                    name: "Mudhoafah (Mudhofah)",
-                    spouse: "M. Sail",
-                    notes: "",
-                    expanded: true,
+                    id: "b4", order: 4, name: "Mudhoafah (Mudhofah)", spouse: "M. Sail", status: "hidup", photo: "", notes: "", expanded: true, cv: {},
                     children: [
-                        { id: "b4-c1", order: 1, name: "Moh. Munif", spouse: "Ninil", notes: "", children: [] },
-                        { id: "b4-c2", order: 2, name: "Titin", spouse: "Sundoyo", notes: "", children: [] },
-                        { id: "b4-c3", order: 3, name: "Ghofar", spouse: "Suparti", notes: "", children: [] },
-                        { id: "b4-c4", order: 4, name: "Ainu Rofiq", spouse: "", notes: "", children: [] }
+                        { id: "b4-c1", order: 1, name: "Moh. Munif", spouse: "Ninil", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b4-c2", order: 2, name: "Titin", spouse: "Sundoyo", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b4-c3", order: 3, name: "Ghofar", spouse: "Suparti", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b4-c4", order: 4, name: "Ainu Rofiq", spouse: "", status: "hidup", photo: "", notes: "", cv: {}, children: [] }
                     ]
                 },
                 {
-                    id: "b5",
-                    order: 5,
-                    name: "Muhayatun",
-                    spouse: "Masab",
-                    notes: "",
-                    expanded: true,
+                    id: "b5", order: 5, name: "Muhayatun", spouse: "Masab", status: "hidup", photo: "", notes: "", expanded: true, cv: {},
                     children: [
-                        { id: "b5-c1", order: 1, name: "Ali Mahsun", spouse: "Nur", notes: "", children: [] },
-                        { id: "b5-c2", order: 2, name: "Ali Maghfur", spouse: "I'in", notes: "", children: [] },
-                        { id: "b5-c3", order: 3, name: "Masnunah", spouse: "Sutono", notes: "", children: [] },
-                        { id: "b5-c4", order: 4, name: "Mahrus", spouse: "", notes: "", children: [] },
-                        { id: "b5-c5", order: 5, name: "I'is", spouse: "", notes: "", children: [] },
-                        { id: "b5-c6", order: 6, name: "Faruq", spouse: "", notes: "", children: [] },
-                        { id: "b5-c7", order: 7, name: "Sofi", spouse: "Aminah", notes: "", children: [] }
+                        { id: "b5-c1", order: 1, name: "Ali Mahsun", spouse: "Nur", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b5-c2", order: 2, name: "Ali Maghfur", spouse: "I'in", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b5-c3", order: 3, name: "Masnunah", spouse: "Sutono", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b5-c4", order: 4, name: "Mahrus", spouse: "", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b5-c5", order: 5, name: "I'is", spouse: "", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b5-c6", order: 6, name: "Faruq", spouse: "", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b5-c7", order: 7, name: "Sofi", spouse: "Aminah", status: "hidup", photo: "", notes: "", cv: {}, children: [] }
                     ]
                 },
                 {
-                    id: "b6",
-                    order: 6,
-                    name: "Umi Kulsum",
-                    spouse: "Abdul Karim",
-                    notes: "",
-                    expanded: true,
+                    id: "b6", order: 6, name: "Umi Kulsum", spouse: "Abdul Karim", status: "hidup", photo: "", notes: "", expanded: true, cv: {},
                     children: [
-                        { id: "b6-c1", order: 1, name: "Saiful Barri", spouse: "Hartini", notes: "", children: [] },
-                        { id: "b6-c2", order: 2, name: "Abdul Choliq", spouse: "Sri Astuti", notes: "", children: [] },
-                        { id: "b6-c3", order: 3, name: "Istianah", spouse: "Hadi", notes: "", children: [] },
-                        { id: "b6-c4", order: 4, name: "Ali Faishol", spouse: "Izzatin", notes: "", children: [] },
-                        { id: "b6-c5", order: 5, name: "Erni Zuliyah", spouse: "Hartoyo", notes: "", children: [] },
-                        { id: "b6-c6", order: 6, name: "M. Nadhif", spouse: "Istiqomah", notes: "", children: [] }
+                        { id: "b6-c1", order: 1, name: "Saiful Barri", spouse: "Hartini", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b6-c2", order: 2, name: "Abdul Choliq", spouse: "Sri Astuti", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b6-c3", order: 3, name: "Istianah", spouse: "Hadi", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b6-c4", order: 4, name: "Ali Faishol", spouse: "Izzatin", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b6-c5", order: 5, name: "Erni Zuliyah", spouse: "Hartoyo", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b6-c6", order: 6, name: "M. Nadhif", spouse: "Istiqomah", status: "hidup", photo: "", notes: "", cv: {}, children: [] }
                     ]
                 },
                 {
-                    id: "b7",
-                    order: 7,
-                    name: "Umi Soliha",
-                    spouse: "Parmon",
-                    notes: "",
-                    expanded: true,
+                    id: "b7", order: 7, name: "Umi Soliha", spouse: "Parmon", status: "hidup", photo: "", notes: "", expanded: true, cv: {},
                     children: [
-                        { id: "b7-c1", order: 1, name: "Anis", spouse: "Neneng", notes: "", children: [] },
-                        { id: "b7-c2", order: 2, name: "Nur", spouse: "Prayogi", notes: "", children: [] },
-                        { id: "b7-c3", order: 3, name: "Nanang", spouse: "", notes: "", children: [] },
-                        { id: "b7-c4", order: 4, name: "Andik", spouse: "", notes: "", children: [] },
-                        { id: "b7-c5", order: 5, name: "Ashari", spouse: "", notes: "", children: [] }
+                        { id: "b7-c1", order: 1, name: "Anis", spouse: "Neneng", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b7-c2", order: 2, name: "Nur", spouse: "Prayogi", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b7-c3", order: 3, name: "Nanang", spouse: "", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b7-c4", order: 4, name: "Andik", spouse: "", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b7-c5", order: 5, name: "Ashari", spouse: "", status: "hidup", photo: "", notes: "", cv: {}, children: [] }
                     ]
                 },
                 {
-                    id: "b8",
-                    order: 8,
-                    name: "Munaziyah",
-                    spouse: "Mudhofir",
-                    notes: "",
-                    expanded: true,
+                    id: "b8", order: 8, name: "Munaziyah", spouse: "Mudhofir", status: "hidup", photo: "", notes: "", expanded: true, cv: {},
                     children: [
-                        { id: "b8-c1", order: 1, name: "Zulfah", spouse: "Yazid", notes: "", children: [] },
-                        { id: "b8-c2", order: 2, name: "Faridah", spouse: "Mubarok", notes: "", children: [] },
-                        { id: "b8-c3", order: 3, name: "Anifah", spouse: "Adi", notes: "", children: [] },
-                        { id: "b8-c4", order: 4, name: "Nunung", spouse: "Sutikno", notes: "", children: [] },
-                        { id: "b8-c5", order: 5, name: "Zubaidi", spouse: "", notes: "", children: [] },
-                        { id: "b8-c6", order: 6, name: "Fahrurrozi", spouse: "", notes: "", children: [] },
-                        { id: "b8-c7", order: 7, name: "Rizal", spouse: "", notes: "", children: [] },
-                        { id: "b8-c8", order: 8, name: "Fiqi", spouse: "", notes: "", children: [] },
-                        { id: "b8-c9", order: 9, name: "Dina", spouse: "", notes: "", children: [] },
-                        { id: "b8-c10", order: 10, name: "Eva", spouse: "", notes: "", children: [] }
+                        { id: "b8-c1", order: 1, name: "Zulfah", spouse: "Yazid", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b8-c2", order: 2, name: "Faridah", spouse: "Mubarok", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b8-c3", order: 3, name: "Anifah", spouse: "Adi", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b8-c4", order: 4, name: "Nunung", spouse: "Sutikno", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b8-c5", order: 5, name: "Zubaidi", spouse: "", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b8-c6", order: 6, name: "Fahrurrozi", spouse: "", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b8-c7", order: 7, name: "Rizal", spouse: "", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b8-c8", order: 8, name: "Fiqi", spouse: "", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b8-c9", order: 9, name: "Dina", spouse: "", status: "hidup", photo: "", notes: "", cv: {}, children: [] },
+                        { id: "b8-c10", order: 10, name: "Eva", spouse: "", status: "hidup", photo: "", notes: "", cv: {}, children: [] }
                     ]
                 }
             ]
         };
 
         // State Aplikasi
-        let familyData = loadFamilyData();
-        let currentViewMode = 'cards'; // 'cards' atau 'tree'
+        let familyData = JSON.parse(JSON.stringify(INITIAL_FAMILY_DATA));
+        let currentViewMode = 'cards';
         let searchQuery = '';
         let selectedBranchFilter = 'all';
         let selectedSpouseFilter = 'all';
         let treeZoomLevel = 1.0;
+        let currentEditPhotoData = ''; // Menyimpan data foto saat modal edit terbuka
+
+        // State Database Firebase
+        let db = null;
+        let auth = null;
+        let currentUser = null;
+        let isFirebaseConnected = false;
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'bani-mashum-silsilah';
 
         // =========================================================================
-        // 2. MANAJEMEN PENYIMPANAN (LOCALSTORAGE) & UTILITAS
+        // 2. INDEXEDDB FALLBACK & DATABASE REAL-TIME FIRESTORE
         // =========================================================================
-        function loadFamilyData() {
-            try {
-                const saved = localStorage.getItem(STORAGE_KEY);
-                if (saved) {
-                    return JSON.parse(saved);
+        function updateSyncBadge(status, text) {
+            const dot = document.getElementById('db-sync-dot');
+            const label = document.getElementById('db-sync-text');
+            if (!dot || !label) return;
+            label.textContent = text;
+            if (status === 'online') {
+                dot.className = 'w-2 h-2 rounded-full bg-emerald-400';
+            } else if (status === 'saving') {
+                dot.className = 'w-2 h-2 rounded-full bg-gold-400 animate-ping';
+            } else {
+                dot.className = 'w-2 h-2 rounded-full bg-amber-400';
+            }
+        }
+
+        function saveToIndexedDB(data) {
+            return new Promise((resolve) => {
+                try {
+                    const req = indexedDB.open(IDB_NAME, 1);
+                    req.onupgradeneeded = (e) => {
+                        const database = e.target.result;
+                        if (!database.objectStoreNames.contains(IDB_STORE)) {
+                            database.createObjectStore(IDB_STORE);
+                        }
+                    };
+                    req.onsuccess = (e) => {
+                        const database = e.target.result;
+                        const tx = database.transaction(IDB_STORE, 'readwrite');
+                        tx.objectStore(IDB_STORE).put(data, IDB_KEY);
+                        tx.oncomplete = () => resolve(true);
+                        tx.onerror = () => resolve(false);
+                    };
+                    req.onerror = () => resolve(false);
+                } catch (err) {
+                    resolve(false);
                 }
-            } catch (e) {
-                console.error("Gagal membaca localStorage:", e);
-            }
-            return JSON.parse(JSON.stringify(INITIAL_FAMILY_DATA));
+            });
         }
 
-        function saveFamilyData() {
+        function loadFromIndexedDB() {
+            return new Promise((resolve) => {
+                try {
+                    const req = indexedDB.open(IDB_NAME, 1);
+                    req.onupgradeneeded = (e) => {
+                        const database = e.target.result;
+                        if (!database.objectStoreNames.contains(IDB_STORE)) {
+                            database.createObjectStore(IDB_STORE);
+                        }
+                    };
+                    req.onsuccess = (e) => {
+                        const database = e.target.result;
+                        const tx = database.transaction(IDB_STORE, 'readonly');
+                        const getReq = tx.objectStore(IDB_STORE).get(IDB_KEY);
+                        getReq.onsuccess = () => resolve(getReq.result || null);
+                        getReq.onerror = () => resolve(null);
+                    };
+                    req.onerror = () => resolve(null);
+                } catch (err) {
+                    resolve(null);
+                }
+            });
+        }
+
+        function normalizeFamilyData(raw) {
+            if (!raw || !raw.root || !Array.isArray(raw.branches)) {
+                return JSON.parse(JSON.stringify(INITIAL_FAMILY_DATA));
+            }
+            raw.root.cv = raw.root.cv || {};
+            raw.root.photo = raw.root.photo || "";
+            raw.branches.forEach(b => {
+                b.cv = b.cv || {};
+                b.photo = b.photo || "";
+                b.children = Array.isArray(b.children) ? b.children : [];
+                b.children.forEach(c => {
+                    c.cv = c.cv || {};
+                    c.photo = c.photo || "";
+                    c.children = Array.isArray(c.children) ? c.children : [];
+                    c.children.forEach(g4 => {
+                        g4.cv = g4.cv || {};
+                        g4.photo = g4.photo || "";
+                    });
+                });
+            });
+            return raw;
+        }
+
+        async function saveFamilyData() {
+            // Selalu simpan cadangan lokal di IndexedDB (mendukung kapasitas besar untuk foto)
+            await saveToIndexedDB(familyData);
+
+            // Jika database cloud terhubung, sinkronkan ke Firestore
+            if (isFirebaseConnected && db && currentUser) {
+                try {
+                    updateSyncBadge('saving', 'Menyimpan ke Database...');
+                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'silsilah_keluarga', 'master_tree');
+                    await setDoc(docRef, {
+                        payload: JSON.stringify(familyData),
+                        updatedAt: new Date().toISOString(),
+                        updatedBy: currentUser.uid
+                    });
+                    updateSyncBadge('online', 'Database Cloud Tersinkron');
+                } catch (err) {
+                    console.error("Gagal sinkronisasi ke Firestore:", err);
+                    updateSyncBadge('offline', 'Tersimpan Lokal (Offline)');
+                }
+            } else {
+                updateSyncBadge('offline', 'Database Lokal Aktif');
+            }
+        }
+
+        async function initDatabaseConnection() {
+            // Muat data awal dari IndexedDB agar instan tampil
+            const cachedLocal = await loadFromIndexedDB();
+            if (cachedLocal) {
+                familyData = normalizeFamilyData(cachedLocal);
+                renderApp();
+            }
+
+            // Cek konfigurasi Firebase dari environment
+            if (typeof __firebase_config === 'undefined' || !__firebase_config) {
+                updateSyncBadge('offline', 'Database Lokal (Browser)');
+                return;
+            }
+
             try {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(familyData));
-            } catch (e) {
-                console.error("Gagal menyimpan ke localStorage:", e);
+                const firebaseConfig = JSON.parse(__firebase_config);
+                const app = initializeApp(firebaseConfig);
+                auth = getAuth(app);
+                db = getFirestore(app);
+
+                // Wajib Autentikasi terlebih dahulu sebelum akses Firestore
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    const cred = await signInWithCustomToken(auth, __initial_auth_token);
+                    currentUser = cred.user;
+                } else {
+                    const cred = await signInAnonymously(auth);
+                    currentUser = cred.user;
+                }
+
+                if (!currentUser) return;
+                isFirebaseConnected = true;
+
+                // Path Wajib: /artifacts/{appId}/public/data/{collectionName}/{docId}
+                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'silsilah_keluarga', 'master_tree');
+
+                // Cek apakah data sudah ada di cloud; jika belum, unggah data awal
+                const initialSnap = await getDoc(docRef);
+                if (!initialSnap.exists()) {
+                    await setDoc(docRef, {
+                        payload: JSON.stringify(familyData),
+                        updatedAt: new Date().toISOString(),
+                        updatedBy: currentUser.uid
+                    });
+                }
+
+                // Dengarkan perubahan real-time dari anggota keluarga lain
+                onSnapshot(docRef, (snapshot) => {
+                    if (snapshot.exists()) {
+                        const data = snapshot.data();
+                        if (data && data.payload) {
+                            const parsed = normalizeFamilyData(JSON.parse(data.payload));
+                            familyData = parsed;
+                            saveToIndexedDB(familyData);
+                            renderApp();
+                        }
+                    }
+                    updateSyncBadge('online', 'Database Cloud Real-Time');
+                }, (error) => {
+                    console.error("Error listener Firestore:", error);
+                    updateSyncBadge('offline', 'Mode Offline (Lokal)');
+                });
+
+            } catch (err) {
+                console.error("Inisialisasi Firebase gagal, memakai database lokal:", err);
+                updateSyncBadge('offline', 'Database Lokal (Browser)');
             }
         }
 
+        // =========================================================================
+        // 3. UTILITAS TAMPILAN, AVATAR FOTO & KOMPRESI GAMBAR
+        // =========================================================================
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -700,7 +1036,7 @@
 
         function escapeHTML(str) {
             if (!str) return '';
-            return str.replace(/[&<>'"]/g, tag => ({
+            return String(str).replace(/[&<>'"]/g, tag => ({
                 '&': '&amp;',
                 '<': '&lt;',
                 '>': '&gt;',
@@ -718,8 +1054,86 @@
             return safeText.replace(regex, '<mark class="bg-gold-400/50 text-emerald-950 font-bold px-0.5 rounded">$1</mark>');
         }
 
+        function getInitials(name) {
+            if (!name) return '?';
+            const parts = name.trim().split(/\s+/);
+            if (parts.length === 1) return parts[0].substring(0, 2).toUpperCase();
+            return (parts[0][0] + parts[1][0]).toUpperCase();
+        }
+
+        function renderAvatarHTML(member, sizeClass = 'w-11 h-11 text-sm', roundedClass = 'rounded-xl') {
+            const initials = escapeHTML(getInitials(member.name));
+            if (member.photo && member.photo.trim() !== '') {
+                return `
+                    <div class="${sizeClass} ${roundedClass} bg-emerald-900 border border-gold-400/60 overflow-hidden shrink-0 relative flex items-center justify-center shadow-xs">
+                        <img src="${escapeHTML(member.photo)}" alt="${escapeHTML(member.name)}" class="w-full h-full object-cover" onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';">
+                        <span style="display:none" class="w-full h-full items-center justify-center font-extrabold text-gold-400">${initials}</span>
+                    </div>
+                `;
+            }
+            return `
+                <div class="${sizeClass} ${roundedClass} bg-gradient-to-br from-emerald-900 to-emerald-800 text-gold-400 border border-gold-500/30 font-extrabold flex items-center justify-center shrink-0 shadow-2xs">
+                    ${initials}
+                </div>
+            `;
+        }
+
+        function hasFilledCV(member) {
+            if (!member) return false;
+            if (member.photo && member.photo.trim() !== '') return true;
+            const cv = member.cv || {};
+            return Boolean(
+                (cv.birthPlace && cv.birthPlace.trim()) ||
+                (cv.birthDate && cv.birthDate.trim()) ||
+                (cv.address && cv.address.trim()) ||
+                (cv.education && cv.education.trim()) ||
+                (cv.occupation && cv.occupation.trim()) ||
+                (cv.phone && cv.phone.trim()) ||
+                (cv.achievements && cv.achievements.trim()) ||
+                (cv.bio && cv.bio.trim())
+            );
+        }
+
+        // Kompresi foto otomatis ke ukuran max 360x360px JPEG agar ringan untuk database
+        function compressImageFile(file, maxSize = 360, quality = 0.78) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (event) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        let width = img.width;
+                        let height = img.height;
+
+                        if (width > height) {
+                            if (width > maxSize) {
+                                height = Math.round((height * maxSize) / width);
+                                width = maxSize;
+                            }
+                        } else {
+                            if (height > maxSize) {
+                                width = Math.round((width * maxSize) / height);
+                                height = maxSize;
+                            }
+                        }
+
+                        canvas.width = width;
+                        canvas.height = height;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, width, height);
+                        const compressedDataUrl = canvas.toDataURL('image/jpeg', quality);
+                        resolve(compressedDataUrl);
+                    };
+                    img.onerror = reject;
+                    img.src = event.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
         // =========================================================================
-        // 3. PERHITUNGAN STATISTIK & FILTERING
+        // 4. PERHITUNGAN STATISTIK & FILTERING
         // =========================================================================
         function calculateStats() {
             const gen1Individuals = familyData.root.spouse ? 2 : 1;
@@ -729,29 +1143,32 @@
             let gen3Spouses = 0;
             let gen4Count = 0;
             let gen4Spouses = 0;
+            let profilesWithPhotoOrCV = hasFilledCV(familyData.root) ? 1 : 0;
 
             familyData.branches.forEach(b => {
                 if (b.spouse && b.spouse.trim() !== '') gen2Spouses++;
+                if (hasFilledCV(b)) profilesWithPhotoOrCV++;
                 gen3Count += b.children.length;
                 b.children.forEach(c => {
                     if (c.spouse && c.spouse.trim() !== '') gen3Spouses++;
+                    if (hasFilledCV(c)) profilesWithPhotoOrCV++;
                     if (c.children && Array.isArray(c.children)) {
                         gen4Count += c.children.length;
                         c.children.forEach(g4 => {
                             if (g4.spouse && g4.spouse.trim() !== '') gen4Spouses++;
+                            if (hasFilledCV(g4)) profilesWithPhotoOrCV++;
                         });
                     }
                 });
             });
 
-            const totalNasab = 1 + gen2Count + gen3Count + gen4Count; // Kakek buyut + keturunan langsung
             const totalRecordedPeople = gen1Individuals + gen2Count + gen2Spouses + gen3Count + gen3Spouses + gen4Count + gen4Spouses;
 
             return {
-                gen1Pairs: 1,
                 gen2Count,
                 gen3Count,
                 gen4Count,
+                profilesWithPhotoOrCV,
                 totalRecordedPeople
             };
         }
@@ -760,9 +1177,22 @@
             const stats = calculateStats();
             const statsGrid = document.getElementById('stats-grid');
 
-            // Update info di kartu leluhur
+            // Update Kartu Leluhur Gen 1
             document.getElementById('root-couple-names').innerHTML = `${escapeHTML(familyData.root.name)} <span class="text-gold-600 font-serif italic font-normal mx-1">&amp;</span> ${escapeHTML(familyData.root.spouse)}`;
             document.getElementById('root-cucu-count').textContent = `${stats.gen3Count} Cucu`;
+            const bioPreview = document.getElementById('root-bio-preview');
+            if (familyData.root.cv && familyData.root.cv.bio) {
+                bioPreview.textContent = familyData.root.cv.bio;
+            } else {
+                bioPreview.textContent = '';
+            }
+
+            const rootAvatarContainer = document.getElementById('root-avatar-container');
+            if (familyData.root.photo) {
+                rootAvatarContainer.innerHTML = `<img src="${escapeHTML(familyData.root.photo)}" alt="Foto Leluhur" class="w-full h-full object-cover">`;
+            } else {
+                rootAvatarContainer.innerHTML = `<i class="fa-solid fa-people-roof"></i>`;
+            }
 
             const cards = [
                 {
@@ -789,15 +1219,15 @@
                 {
                     label: "Generasi 4 (Cicit)",
                     value: `${stats.gen4Count} Cicit`,
-                    sub: stats.gen4Count > 0 ? "Tercatat di sistem" : "Dapat ditambahkan",
+                    sub: stats.gen4Count > 0 ? "Tercatat di database" : "Dapat ditambahkan",
                     icon: "fa-seedling",
                     accent: "text-emerald-300"
                 },
                 {
-                    label: "Total Jiwa Tercatat",
-                    value: `${stats.totalRecordedPeople} Orang`,
-                    sub: "Termasuk Suami & Istri",
-                    icon: "fa-address-book",
+                    label: "Profil Foto & CV",
+                    value: `${stats.profilesWithPhotoOrCV} Profil`,
+                    sub: `Total ${stats.totalRecordedPeople} Jiwa Tercatat`,
+                    icon: "fa-id-card",
                     accent: "text-gold-400"
                 }
             ];
@@ -829,37 +1259,48 @@
             select.value = currentVal || 'all';
         }
 
+        function memberMatchesSearch(member, q) {
+            if (!q) return true;
+            const cv = member.cv || {};
+            const haystack = [
+                member.name,
+                member.spouse,
+                member.notes,
+                cv.address,
+                cv.occupation,
+                cv.education,
+                cv.birthPlace
+            ].filter(Boolean).join(' ').toLowerCase();
+            return haystack.includes(q);
+        }
+
         function getFilteredBranches() {
             const q = searchQuery.trim().toLowerCase();
 
             return familyData.branches
                 .filter(branch => selectedBranchFilter === 'all' || branch.id === selectedBranchFilter)
                 .map(branch => {
-                    const branchMatchesQuery = !q ||
-                        branch.name.toLowerCase().includes(q) ||
-                        (branch.spouse && branch.spouse.toLowerCase().includes(q));
+                    const branchMatchesQuery = memberMatchesSearch(branch, q);
 
                     const filteredChildren = branch.children.filter(child => {
                         const hasSpouse = child.spouse && child.spouse.trim() !== '';
                         if (selectedSpouseFilter === 'known' && !hasSpouse) return false;
                         if (selectedSpouseFilter === 'unknown' && hasSpouse) return false;
+                        if (selectedSpouseFilter === 'has-cv' && !hasFilledCV(child)) return false;
 
                         if (!q) return true;
                         if (branchMatchesQuery && selectedSpouseFilter === 'all') return true;
 
-                        const childMatches = child.name.toLowerCase().includes(q) ||
-                            (child.spouse && child.spouse.toLowerCase().includes(q));
-                        const gen4Matches = (child.children || []).some(g4 =>
-                            g4.name.toLowerCase().includes(q) ||
-                            (g4.spouse && g4.spouse.toLowerCase().includes(q))
-                        );
+                        const childMatches = memberMatchesSearch(child, q);
+                        const gen4Matches = (child.children || []).some(g4 => memberMatchesSearch(g4, q));
                         return childMatches || gen4Matches || branchMatchesQuery;
                     });
 
-                    // Tampilkan cabang jika cocok pencarian langsung (tanpa filter status pasangan) atau memiliki anak yang lolos filter
+                    const branchPassesSpouseFilter = selectedSpouseFilter !== 'has-cv' || hasFilledCV(branch);
+
                     const showBranch = (branchMatchesQuery && selectedSpouseFilter === 'all' && !q) ||
                         filteredChildren.length > 0 ||
-                        (branchMatchesQuery && selectedSpouseFilter === 'all');
+                        (branchMatchesQuery && branchPassesSpouseFilter && selectedSpouseFilter === 'has-cv');
 
                     return {
                         ...branch,
@@ -871,7 +1312,7 @@
         }
 
         // =========================================================================
-        // 4. RENDERING MODE 1: KARTU & DAFTAR CABANG (ACCORDION / GRID)
+        // 5. RENDERING MODE 1: KARTU & DAFTAR CABANG (DENGAN FOTO & TOMBOL CV)
         // =========================================================================
         function renderCardsView(filteredBranches) {
             const container = document.getElementById('cards-view-container');
@@ -888,22 +1329,32 @@
                     ? `<span class="text-gold-300 font-semibold">${highlightText(branch.spouse, q)}</span>`
                     : `<span class="text-cream-300/70 italic text-xs">Pasangan belum tercatat</span>`;
 
+                const branchJob = branch.cv && branch.cv.occupation ? `<span class="text-xs text-cream-200/80 block mt-0.5"><i class="fa-solid fa-briefcase text-gold-400/80 mr-1"></i>${highlightText(branch.cv.occupation, q)}</span>` : '';
+
                 const childrenRows = branch.filteredChildren.map(child => {
                     const hasSpouse = child.spouse && child.spouse.trim() !== '';
                     const gen4List = child.children || [];
+                    const childCv = child.cv || {};
+                    const hasProfile = hasFilledCV(child);
 
                     return `
                         <div class="group p-3 sm:p-3.5 rounded-xl bg-cream-50 hover:bg-sage-50 border border-cream-200 hover:border-sage-200 transition-all flex flex-col gap-2">
-                            <div class="flex items-start justify-between gap-2">
-                                <div class="flex items-start gap-3 min-w-0">
-                                    <span class="w-7 h-7 rounded-lg bg-emerald-900/10 text-emerald-900 font-bold text-xs flex items-center justify-center shrink-0 mt-0.5">
-                                        ${child.order}
-                                    </span>
-                                    <div class="min-w-0">
+                            <div class="flex items-start justify-between gap-2.5">
+                                <div onclick="openCVModal('gen3', '${branch.id}', '${child.id}')" class="cursor-pointer flex items-start gap-3 min-w-0 flex-1">
+                                    <!-- Avatar Foto Cucu (Gen 3) -->
+                                    <div class="relative">
+                                        ${renderAvatarHTML(child, 'w-11 h-11 text-xs', 'rounded-xl')}
+                                        <span class="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-md bg-emerald-900 text-gold-300 font-extrabold text-[10px] flex items-center justify-center shadow-xs border border-gold-400/50">
+                                            ${child.order}
+                                        </span>
+                                    </div>
+
+                                    <div class="min-w-0 flex-1">
                                         <div class="flex flex-wrap items-center gap-x-2 gap-y-1">
-                                            <span class="font-bold text-gray-900 text-sm sm:text-base">
+                                            <span class="font-bold text-gray-900 group-hover:text-emerald-900 text-sm sm:text-base transition-colors">
                                                 ${highlightText(child.name, q)}
                                             </span>
+                                            ${child.status === 'wafat' ? `<span class="text-[10px] px-1.5 py-0.5 rounded bg-gray-200 text-gray-700 font-semibold">Alm/Almh</span>` : ''}
                                             ${hasSpouse ? `
                                                 <span class="inline-flex items-center gap-1 text-xs sm:text-sm text-sage-700 font-medium">
                                                     <i class="fa-solid fa-heart text-[10px] text-gold-600"></i>
@@ -915,29 +1366,48 @@
                                                 </span>
                                             `}
                                         </div>
+
+                                        <!-- Ringkasan Singkat CV (Profesi / Domisili) jika ada -->
+                                        ${(childCv.occupation || childCv.address) ? `
+                                            <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-sage-700 mt-1">
+                                                ${childCv.occupation ? `<span><i class="fa-solid fa-briefcase text-gold-600 mr-1"></i>${highlightText(childCv.occupation, q)}</span>` : ''}
+                                                ${childCv.address ? `<span class="truncate max-w-[220px]"><i class="fa-solid fa-location-dot text-emerald-700 mr-1"></i>${highlightText(childCv.address, q)}</span>` : ''}
+                                            </div>
+                                        ` : ''}
+
                                         ${child.notes ? `<p class="text-xs text-gray-500 mt-0.5"><i class="fa-regular fa-note-sticky mr-1"></i>${escapeHTML(child.notes)}</p>` : ''}
                                     </div>
                                 </div>
 
-                                <!-- Tombol Detail / Edit Cucu -->
-                                <button onclick="openDetailModal('gen3', '${branch.id}', '${child.id}')" 
-                                    class="no-print shrink-0 px-2.5 py-1.5 rounded-lg bg-white hover:bg-emerald-900 text-gray-600 hover:text-white border border-cream-300 hover:border-emerald-900 text-xs font-semibold transition-all shadow-2xs"
-                                    title="Lihat detail, edit, atau tambah anak (Gen 4)">
-                                    <i class="fa-solid fa-pen-to-square sm:mr-1"></i>
-                                    <span class="hidden sm:inline">Detail / Edit</span>
-                                </button>
+                                <!-- Tombol Lihat CV & Edit -->
+                                <div class="no-print shrink-0 flex items-center gap-1.5">
+                                    <button onclick="openCVModal('gen3', '${branch.id}', '${child.id}')" 
+                                        class="px-2.5 py-1.5 rounded-lg ${hasProfile ? 'bg-gold-100 hover:bg-gold-400/30 text-emerald-950 border-gold-400/60' : 'bg-white hover:bg-cream-200 text-sage-700 border-cream-300'} border text-xs font-bold transition-all"
+                                        title="Lihat Profil Foto & CV Lengkap">
+                                        <i class="fa-solid fa-id-card text-gold-600 sm:mr-1"></i>
+                                        <span class="hidden sm:inline">CV</span>
+                                    </button>
+                                    <button onclick="openEditModal('gen3', '${branch.id}', '${child.id}')" 
+                                        class="px-2.5 py-1.5 rounded-lg bg-white hover:bg-emerald-900 text-gray-600 hover:text-white border border-cream-300 hover:border-emerald-900 text-xs font-semibold transition-all"
+                                        title="Edit Foto, CV & Keturunan">
+                                        <i class="fa-solid fa-pen-to-square"></i>
+                                    </button>
+                                </div>
                             </div>
 
                             <!-- Sub-daftar Generasi 4 (Cicit) jika ada -->
                             ${gen4List.length > 0 ? `
-                                <div class="ml-10 pl-3 border-l-2 border-gold-400/70 space-y-1 pt-1">
+                                <div class="ml-12 pl-3 border-l-2 border-gold-400/70 space-y-1.5 pt-1">
                                     <p class="text-[11px] font-bold uppercase tracking-wider text-sage-600">Keturunan / Generasi 4 (${gen4List.length}):</p>
                                     <div class="flex flex-wrap gap-1.5">
                                         ${gen4List.map((g4, idx) => `
-                                            <span class="inline-flex items-center gap-1 px-2.5 py-1 rounded-lg bg-white border border-cream-300 text-xs text-gray-800 shadow-2xs">
-                                                <strong class="text-emerald-800">${idx + 1}.</strong> ${highlightText(g4.name, q)}
+                                            <button type="button" onclick="openCVModal('gen4', '${branch.id}', '${child.id}', '${g4.id}')" 
+                                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white hover:bg-gold-100 border border-cream-300 hover:border-gold-400 text-xs text-gray-800 shadow-2xs transition-colors"
+                                                title="Klik untuk lihat CV & Foto ${escapeHTML(g4.name)}">
+                                                ${g4.photo ? `<img src="${escapeHTML(g4.photo)}" class="w-4 h-4 rounded-full object-cover">` : `<strong class="text-emerald-800">${idx + 1}.</strong>`}
+                                                <span class="font-semibold">${highlightText(g4.name, q)}</span>
                                                 ${g4.spouse ? `<span class="text-gray-500">(&amp; ${highlightText(g4.spouse, q)})</span>` : ''}
-                                            </span>
+                                            </button>
                                         `).join('')}
                                     </div>
                                 </div>
@@ -951,14 +1421,25 @@
                         <!-- Header Kartu Cabang (Generasi 2) -->
                         <div class="bg-gradient-to-r from-emerald-900 to-emerald-850 p-4 sm:p-5 text-white">
                             <div class="flex items-start justify-between gap-3">
-                                <div class="flex items-start gap-3.5">
-                                    <div class="w-11 h-11 rounded-xl bg-gold-500 text-emerald-950 font-extrabold text-base flex flex-col items-center justify-center shrink-0 shadow">
-                                        <span class="text-[9px] uppercase leading-none opacity-80">Anak</span>
-                                        <span class="leading-tight">${branch.order}</span>
+                                <div onclick="openCVModal('gen2', '${branch.id}')" class="cursor-pointer flex items-start gap-3.5 min-w-0 flex-1 group">
+                                    <!-- Avatar Foto Cabang (Generasi 2) -->
+                                    <div class="relative shrink-0">
+                                        ${branch.photo ? `
+                                            <div class="w-14 h-14 rounded-2xl border-2 border-gold-400 overflow-hidden shadow-md">
+                                                <img src="${escapeHTML(branch.photo)}" alt="${escapeHTML(branch.name)}" class="w-full h-full object-cover">
+                                            </div>
+                                        ` : `
+                                            <div class="w-14 h-14 rounded-2xl bg-gold-500 text-emerald-950 font-extrabold text-lg flex flex-col items-center justify-center shadow">
+                                                <span class="text-[9px] uppercase leading-none opacity-80">Anak</span>
+                                                <span class="leading-tight">${branch.order}</span>
+                                            </div>
+                                        `}
+                                        ${branch.photo ? `<span class="absolute -bottom-1.5 -right-1.5 px-1.5 py-0.5 rounded-md bg-gold-500 text-emerald-950 font-extrabold text-[10px] shadow">Ke-${branch.order}</span>` : ''}
                                     </div>
-                                    <div>
+
+                                    <div class="min-w-0">
                                         <div class="flex flex-wrap items-center gap-2">
-                                            <h3 class="text-lg sm:text-xl font-extrabold tracking-tight text-white">
+                                            <h3 class="text-lg sm:text-xl font-extrabold tracking-tight text-white group-hover:text-gold-300 transition-colors">
                                                 ${highlightText(branch.name, q)}
                                             </h3>
                                             <span class="text-xs px-2.5 py-0.5 rounded-full bg-emerald-950/80 border border-gold-400/40 text-gold-300 font-semibold">
@@ -968,12 +1449,16 @@
                                         <p class="text-sm text-cream-100 mt-1 flex items-center gap-1.5">
                                             <span class="text-cream-300/80">Pasangan:</span> ${spouseDisplay}
                                         </p>
-                                        ${branch.notes ? `<p class="text-xs text-cream-200/80 mt-1 italic">${escapeHTML(branch.notes)}</p>` : ''}
+                                        ${branchJob}
                                     </div>
                                 </div>
 
-                                <div class="flex items-center gap-1.5 no-print">
-                                    <button onclick="openDetailModal('gen2', '${branch.id}')" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-cream-100 flex items-center justify-center transition-colors" title="Edit Cabang Generasi 2">
+                                <div class="flex items-center gap-1.5 no-print shrink-0">
+                                    <button onclick="openCVModal('gen2', '${branch.id}')" class="px-2.5 h-8 rounded-lg bg-gold-500 hover:bg-gold-600 text-emerald-950 text-xs font-bold flex items-center gap-1 transition-colors" title="Lihat Biografi & CV">
+                                        <i class="fa-solid fa-id-card"></i>
+                                        <span class="hidden sm:inline">CV</span>
+                                    </button>
+                                    <button onclick="openEditModal('gen2', '${branch.id}')" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-cream-100 flex items-center justify-center transition-colors" title="Edit Foto & Data">
                                         <i class="fa-solid fa-pen text-xs"></i>
                                     </button>
                                     <button onclick="toggleBranchExpand('${branch.id}')" class="w-8 h-8 rounded-lg bg-white/10 hover:bg-white/20 text-cream-100 flex items-center justify-center transition-colors" title="${isExpanded ? 'Tutup Daftar' : 'Buka Daftar'}">
@@ -990,7 +1475,7 @@
                                 <span>Menampilkan ${branch.filteredChildren.length} dari ${branch.children.length}</span>
                             </div>
                             ${branch.filteredChildren.length > 0 ? childrenRows : `
-                                <p class="text-sm text-gray-500 italic py-4 text-center">Tidak ada cucu di cabang ini yang sesuai filter status pasangan.</p>
+                                <p class="text-sm text-gray-500 italic py-4 text-center">Tidak ada anggota di cabang ini yang sesuai filter.</p>
                             `}
                         </div>
                     </article>
@@ -999,7 +1484,7 @@
         }
 
         // =========================================================================
-        // 5. RENDERING MODE 2: POHON VISUAL / DIAGRAM HIERARKI INTERAKTIF
+        // 6. RENDERING MODE 2: POHON VISUAL / DIAGRAM HIERARKI INTERAKTIF
         // =========================================================================
         function renderTreeView(filteredBranches) {
             const canvas = document.getElementById('tree-canvas');
@@ -1017,30 +1502,32 @@
                 const isExpanded = q || selectedSpouseFilter !== 'all' ? true : branch.expanded;
 
                 const childrenTreeHTML = isExpanded && branch.filteredChildren.length > 0 ? `
-                    <!-- Garis vertikal turun dari Node Gen 2 ke daftar Gen 3 -->
                     <div class="w-0.5 h-6 bg-gold-500 mx-auto"></div>
                     <div class="flex flex-col gap-2.5 relative pl-4 border-l-2 border-emerald-700/40 ml-4">
                         ${branch.filteredChildren.map(child => {
                             const hasSpouse = child.spouse && child.spouse.trim() !== '';
                             const gen4Count = (child.children || []).length;
                             return `
-                                <div onclick="openDetailModal('gen3', '${branch.id}', '${child.id}')" 
-                                    class="relative cursor-pointer group bg-white hover:bg-sage-50 border border-cream-300 hover:border-emerald-700 rounded-xl p-2.5 shadow-2xs transition-all text-left w-60">
-                                    <!-- Garis horizontal kecil ke node cucu -->
+                                <div onclick="openCVModal('gen3', '${branch.id}', '${child.id}')" 
+                                    class="relative cursor-pointer group bg-white hover:bg-sage-50 border border-cream-300 hover:border-emerald-700 rounded-xl p-2.5 shadow-2xs transition-all text-left w-64 flex items-center gap-2.5">
                                     <div class="absolute -left-4 top-1/2 w-4 h-0.5 bg-emerald-700/40"></div>
                                     
-                                    <div class="flex items-center justify-between gap-1.5">
-                                        <span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-900/10 text-emerald-900">
-                                            Cucu ke-${child.order}
-                                        </span>
-                                        ${gen4Count > 0 ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gold-100 text-gold-600">+${gen4Count} Cicit</span>` : ''}
+                                    ${renderAvatarHTML(child, 'w-10 h-10 text-xs', 'rounded-lg')}
+
+                                    <div class="min-w-0 flex-1">
+                                        <div class="flex items-center justify-between gap-1">
+                                            <span class="text-[10px] font-extrabold px-1.5 py-0.5 rounded bg-emerald-900/10 text-emerald-900">
+                                                Cucu ke-${child.order}
+                                            </span>
+                                            ${gen4Count > 0 ? `<span class="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gold-100 text-gold-600">+${gen4Count} Cicit</span>` : ''}
+                                        </div>
+                                        <p class="font-bold text-sm text-gray-900 mt-0.5 group-hover:text-emerald-900 truncate">
+                                            ${highlightText(child.name, q)}
+                                        </p>
+                                        <p class="text-xs truncate ${hasSpouse ? 'text-sage-700 font-medium' : 'text-gray-400 italic'}">
+                                            ${hasSpouse ? `&amp; ${highlightText(child.spouse, q)}` : 'Pasangan belum tercatat'}
+                                        </p>
                                     </div>
-                                    <p class="font-bold text-sm text-gray-900 mt-1 group-hover:text-emerald-900">
-                                        ${highlightText(child.name, q)}
-                                    </p>
-                                    <p class="text-xs mt-0.5 ${hasSpouse ? 'text-sage-700 font-medium' : 'text-gray-400 italic'}">
-                                        ${hasSpouse ? `&amp; ${highlightText(child.spouse, q)}` : 'Pasangan belum tercatat'}
-                                    </p>
                                 </div>
                             `;
                         }).join('')}
@@ -1049,27 +1536,33 @@
 
                 return `
                     <div class="flex flex-col items-center relative px-3">
-                        <!-- Garis penghubung horizontal atas antar cabang -->
                         ${!isOnly ? `
                             <div class="w-full h-0.5 relative">
                                 <div class="absolute top-0 h-0.5 bg-gold-500 ${isFirst ? 'left-1/2 right-0' : isLast ? 'left-0 right-1/2' : 'left-0 right-0'}"></div>
                             </div>
                         ` : ''}
-                        <!-- Garis vertikal turun ke node Gen 2 -->
                         <div class="w-0.5 h-6 bg-gold-500"></div>
 
                         <!-- NODE GENERASI 2 (ANAK H. MA'SHUM) -->
                         <div class="w-64 bg-gradient-to-b from-emerald-900 to-emerald-950 text-white rounded-2xl border-2 border-gold-400/80 shadow-md p-3.5 text-center relative">
-                            <div class="flex items-center justify-between text-[11px] mb-1">
+                            <div class="flex items-center justify-between text-[11px] mb-2">
                                 <span class="px-2 py-0.5 rounded-full bg-gold-500 text-emerald-950 font-extrabold">Anak ke-${branch.order}</span>
-                                <button onclick="openDetailModal('gen2', '${branch.id}')" class="text-cream-200 hover:text-gold-400 px-1.5" title="Edit">
-                                    <i class="fa-solid fa-pen"></i>
-                                </button>
+                                <div class="flex items-center gap-1">
+                                    <button onclick="openCVModal('gen2', '${branch.id}')" class="text-gold-300 hover:text-white px-1.5" title="Lihat CV">
+                                        <i class="fa-solid fa-id-card"></i>
+                                    </button>
+                                    <button onclick="openEditModal('gen2', '${branch.id}')" class="text-cream-200 hover:text-gold-400 px-1.5" title="Edit">
+                                        <i class="fa-solid fa-pen"></i>
+                                    </button>
+                                </div>
                             </div>
-                            <h4 class="font-extrabold text-base text-white leading-snug">${highlightText(branch.name, q)}</h4>
-                            <p class="text-xs text-gold-300 mt-0.5">
-                                ${branch.spouse ? `&amp; ${highlightText(branch.spouse, q)}` : '<span class="italic text-cream-300/70">Pasangan belum tercatat</span>'}
-                            </p>
+                            <div onclick="openCVModal('gen2', '${branch.id}')" class="cursor-pointer flex flex-col items-center">
+                                ${branch.photo ? `<img src="${escapeHTML(branch.photo)}" class="w-14 h-14 rounded-full object-cover border-2 border-gold-400 mb-2 shadow">` : ''}
+                                <h4 class="font-extrabold text-base text-white leading-snug hover:text-gold-300">${highlightText(branch.name, q)}</h4>
+                                <p class="text-xs text-gold-300 mt-0.5">
+                                    ${branch.spouse ? `&amp; ${highlightText(branch.spouse, q)}` : '<span class="italic text-cream-300/70">Pasangan belum tercatat</span>'}
+                                </p>
+                            </div>
 
                             <button onclick="toggleBranchExpand('${branch.id}')" 
                                 class="mt-3 w-full py-1.5 px-3 rounded-lg bg-white/10 hover:bg-white/20 text-xs font-semibold text-cream-100 flex items-center justify-center gap-1.5 transition-colors">
@@ -1078,7 +1571,6 @@
                             </button>
                         </div>
 
-                        <!-- DAFTAR NODE GENERASI 3 -->
                         ${childrenTreeHTML}
                     </div>
                 `;
@@ -1087,18 +1579,17 @@
             canvas.innerHTML = `
                 <div class="flex flex-col items-center min-w-max pb-8">
                     <!-- NODE AKAR (GENERASI 1) -->
-                    <div onclick="openDetailModal('gen1', 'root')" class="cursor-pointer bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-950 text-white px-8 py-5 rounded-2xl border-2 border-gold-400 shadow-xl text-center max-w-md hover:scale-[1.01] transition-transform">
+                    <div onclick="openCVModal('gen1', 'root')" class="cursor-pointer bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-950 text-white px-8 py-5 rounded-2xl border-2 border-gold-400 shadow-xl text-center max-w-md hover:scale-[1.01] transition-transform flex flex-col items-center">
+                        ${familyData.root.photo ? `<img src="${escapeHTML(familyData.root.photo)}" class="w-16 h-16 rounded-full object-cover border-2 border-gold-400 mb-2 shadow-md">` : ''}
                         <span class="text-[11px] font-bold uppercase tracking-widest text-gold-400">Generasi 1 • Leluhur Utama</span>
                         <h3 class="text-xl sm:text-2xl font-extrabold mt-1 font-serif">
                             ${escapeHTML(familyData.root.name)} &amp; ${escapeHTML(familyData.root.spouse)}
                         </h3>
-                        <p class="text-xs text-cream-200 mt-1">8 Putra-Putri • 51 Cucu</p>
+                        <p class="text-xs text-cream-200 mt-1">8 Putra-Putri • ${calculateStats().gen3Count} Cucu (Klik untuk Biografi)</p>
                     </div>
 
-                    <!-- Garis vertikal utama turun dari Leluhur -->
                     <div class="w-0.5 h-8 bg-gold-500"></div>
 
-                    <!-- Baris 8 Cabang Generasi 2 -->
                     <div class="flex items-start justify-center">
                         ${branchesHTML}
                     </div>
@@ -1107,7 +1598,611 @@
         }
 
         // =========================================================================
-        // 6. KONTROL TAMPILAN, ZOOM POHON & EVENT LISTENERS
+        // 7. TAMPILAN MODAL CV / BIOGRAFI LENGKAP ANGGOTA
+        // =========================================================================
+        function openCVModal(level, branchId, childId = '', gen4Id = '') {
+            let member = null;
+            let genLabel = '';
+            let lineageHTML = '';
+            let childrenHTML = '';
+
+            if (level === 'gen1') {
+                member = familyData.root;
+                genLabel = 'Generasi 1 • Leluhur Utama Bani H. Ma\'shum';
+                lineageHTML = `<p><strong>Kedudukan Nasab:</strong> Kakek Buyut &amp; Nenek Buyut (Sumber 8 Cabang Keluarga Besar)</p>`;
+                childrenHTML = familyData.branches.map(b => `${b.order}. ${escapeHTML(b.name)}`).join(' • ');
+            } else if (level === 'gen2') {
+                const branch = familyData.branches.find(b => b.id === branchId);
+                if (!branch) return;
+                member = branch;
+                genLabel = `Generasi 2 • Putra/Putri ke-${branch.order}`;
+                lineageHTML = `
+                    <p><strong>Orang Tua:</strong> ${escapeHTML(familyData.root.name)} &amp; ${escapeHTML(familyData.root.spouse)}</p>
+                    <p><strong>Urutan Nasab:</strong> Anak ke-${branch.order} dari 8 bersaudara</p>
+                `;
+                childrenHTML = branch.children.length > 0
+                    ? branch.children.map(c => `${c.order}. ${escapeHTML(c.name)}`).join(' • ')
+                    : 'Belum ada data keturunan';
+            } else if (level === 'gen3') {
+                const branch = familyData.branches.find(b => b.id === branchId);
+                const child = branch?.children.find(c => c.id === childId);
+                if (!branch || !child) return;
+                member = child;
+                genLabel = `Generasi 3 • Cucu (Cabang ${branch.name})`;
+                lineageHTML = `
+                    <p><strong>Orang Tua:</strong> ${escapeHTML(branch.name)} &amp; ${escapeHTML(branch.spouse || 'Pasangan')} (Anak ke-${branch.order})</p>
+                    <p><strong>Kakek/Nenek:</strong> ${escapeHTML(familyData.root.name)} &amp; ${escapeHTML(familyData.root.spouse)}</p>
+                `;
+                const g4List = child.children || [];
+                childrenHTML = g4List.length > 0
+                    ? g4List.map((g, idx) => `${idx + 1}. ${escapeHTML(g.name)}`).join(' • ')
+                    : 'Belum ada data Generasi 4 tercatat';
+            } else if (level === 'gen4') {
+                const branch = familyData.branches.find(b => b.id === branchId);
+                const child = branch?.children.find(c => c.id === childId);
+                const g4 = child?.children?.find(g => g.id === gen4Id);
+                if (!branch || !child || !g4) return;
+                member = g4;
+                genLabel = `Generasi 4 • Cicit (Cabang ${branch.name})`;
+                lineageHTML = `
+                    <p><strong>Orang Tua:</strong> ${escapeHTML(child.name)} &amp; ${escapeHTML(child.spouse || 'Pasangan')}</p>
+                    <p><strong>Kakek/Nenek:</strong> ${escapeHTML(branch.name)} &amp; ${escapeHTML(branch.spouse || 'Pasangan')}</p>
+                    <p><strong>Buyut:</strong> ${escapeHTML(familyData.root.name)} &amp; ${escapeHTML(familyData.root.spouse)}</p>
+                `;
+                childrenHTML = 'Generasi ke-4 Bani H. Ma\'shum &amp; Nyai Masrobatun';
+            }
+
+            const cv = member.cv || {};
+            const ttl = [cv.birthPlace, cv.birthDate].filter(Boolean).join(', ') || 'Belum diisi';
+            const statusText = member.status === 'wafat'
+                ? `Almarhum / Almarhumah ${cv.deathDate ? `(Wafat: ${escapeHTML(cv.deathDate)})` : ''}`
+                : 'Sehat / Aktif';
+
+            const photoBlock = member.photo && member.photo.trim() !== ''
+                ? `<img src="${escapeHTML(member.photo)}" alt="${escapeHTML(member.name)}" class="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl object-cover border-4 border-gold-400 shadow-lg bg-emerald-950">`
+                : `<div class="w-28 h-28 sm:w-32 sm:h-32 rounded-2xl bg-emerald-950 border-4 border-gold-400/70 text-gold-400 flex flex-col items-center justify-center shadow-lg">
+                        <span class="text-3xl sm:text-4xl font-extrabold">${escapeHTML(getInitials(member.name))}</span>
+                        <span class="text-[10px] uppercase tracking-wider text-cream-300 mt-1">Foto Belum Ada</span>
+                   </div>`;
+
+            const docContainer = document.getElementById('cv-document-content');
+            docContainer.innerHTML = `
+                <!-- Header Profil CV -->
+                <div class="bg-islamic-pattern text-white p-6 sm:p-8 flex flex-col sm:flex-row items-center sm:items-start gap-6 border-b-4 border-gold-500">
+                    <div class="shrink-0">${photoBlock}</div>
+                    <div class="text-center sm:text-left flex-1 min-w-0">
+                        <span class="inline-block px-3 py-1 rounded-full bg-gold-500 text-emerald-950 text-xs font-extrabold uppercase tracking-wider mb-2">
+                            ${escapeHTML(genLabel)}
+                        </span>
+                        <h2 class="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+                            ${escapeHTML(member.name)}
+                        </h2>
+                        <p class="text-base sm:text-lg text-gold-300 font-medium mt-1">
+                            ${member.spouse ? `<i class="fa-solid fa-heart text-xs mr-1.5"></i>Pasangan: <strong>${escapeHTML(member.spouse)}</strong>` : '<span class="italic text-cream-300/80 text-sm">Pasangan belum tercatat</span>'}
+                        </p>
+                        ${cv.occupation ? `
+                            <p class="mt-2 inline-flex items-center gap-2 px-3 py-1 rounded-lg bg-white/10 text-cream-100 text-xs sm:text-sm font-medium">
+                                <i class="fa-solid fa-briefcase text-gold-400"></i> ${escapeHTML(cv.occupation)}
+                            </p>
+                        ` : ''}
+                    </div>
+                </div>
+
+                <!-- Isi Detail CV & Biodata -->
+                <div class="p-6 sm:p-8 space-y-6 text-gray-800">
+                    <!-- Biografi / Pesan Keluarga -->
+                    <div class="p-4 rounded-2xl bg-cream-50 border border-cream-300">
+                        <h4 class="text-xs font-extrabold uppercase tracking-wider text-emerald-900 mb-1.5 flex items-center gap-2">
+                            <i class="fa-solid fa-quote-left text-gold-600"></i> Biografi Singkat &amp; Pesan Silaturahmi
+                        </h4>
+                        <p class="text-sm text-gray-700 leading-relaxed">
+                            ${cv.bio ? escapeHTML(cv.bio) : '<span class="italic text-gray-400">Belum ada catatan biografi. Klik tombol "Edit Profil & Foto" untuk melengkapi biodata dan kisah anggota keluarga ini.</span>'}
+                        </p>
+                    </div>
+
+                    <!-- Grid Informasi Pribadi & Karier -->
+                    <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                        <!-- Kolom Kiri: Data Pribadi & Kontak -->
+                        <div class="space-y-3.5">
+                            <h4 class="text-sm font-extrabold text-emerald-950 border-b-2 border-gold-400 pb-1.5 flex items-center gap-2">
+                                <i class="fa-solid fa-user-tie text-emerald-800"></i> Data Pribadi &amp; Kontak
+                            </h4>
+                            <div class="space-y-2.5 text-sm">
+                                <div>
+                                    <span class="text-xs font-bold text-sage-600 block">Tempat, Tanggal Lahir</span>
+                                    <span class="font-medium text-gray-900">${escapeHTML(ttl)}</span>
+                                </div>
+                                <div>
+                                    <span class="text-xs font-bold text-sage-600 block">Status</span>
+                                    <span class="font-medium text-gray-900">${statusText}</span>
+                                </div>
+                                <div>
+                                    <span class="text-xs font-bold text-sage-600 block">Alamat / Domisili</span>
+                                    <span class="font-medium text-gray-900">${cv.address ? escapeHTML(cv.address) : '<span class="text-gray-400 italic">Belum diisi</span>'}</span>
+                                </div>
+                                <div>
+                                    <span class="text-xs font-bold text-sage-600 block">No. WhatsApp / Kontak</span>
+                                    <span class="font-medium text-gray-900">${cv.phone ? escapeHTML(cv.phone) : '<span class="text-gray-400 italic">Belum diisi</span>'}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Kolom Kanan: Pendidikan & Profesi -->
+                        <div class="space-y-3.5">
+                            <h4 class="text-sm font-extrabold text-emerald-950 border-b-2 border-gold-400 pb-1.5 flex items-center gap-2">
+                                <i class="fa-solid fa-graduation-cap text-emerald-800"></i> Pendidikan &amp; Kiprah
+                            </h4>
+                            <div class="space-y-2.5 text-sm">
+                                <div>
+                                    <span class="text-xs font-bold text-sage-600 block">Pendidikan Terakhir / Almamater</span>
+                                    <span class="font-medium text-gray-900">${cv.education ? escapeHTML(cv.education) : '<span class="text-gray-400 italic">Belum diisi</span>'}</span>
+                                </div>
+                                <div>
+                                    <span class="text-xs font-bold text-sage-600 block">Pekerjaan / Profesi</span>
+                                    <span class="font-medium text-gray-900">${cv.occupation ? escapeHTML(cv.occupation) : '<span class="text-gray-400 italic">Belum diisi</span>'}</span>
+                                </div>
+                                <div>
+                                    <span class="text-xs font-bold text-sage-600 block">Keahlian / Organisasi / Prestasi</span>
+                                    <span class="font-medium text-gray-900">${cv.achievements ? escapeHTML(cv.achievements) : '<span class="text-gray-400 italic">Belum diisi</span>'}</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Garis Nasab & Keturunan -->
+                    <div class="p-4 rounded-2xl bg-sage-50 border border-sage-200 space-y-2 text-xs sm:text-sm">
+                        <h4 class="font-extrabold text-emerald-950 flex items-center gap-2">
+                            <i class="fa-solid fa-sitemap text-gold-600"></i> Jejak Nasab Bani H. Ma'shum &amp; Nyai Masrobatun
+                        </h4>
+                        <div class="text-sage-700 space-y-1">${lineageHTML}</div>
+                        <div class="pt-2 border-t border-sage-200">
+                            <span class="font-bold text-emerald-900 block mb-0.5">Daftar Putra / Putri:</span>
+                            <p class="text-gray-700">${childrenHTML}</p>
+                        </div>
+                    </div>
+                </div>
+            `;
+
+            // Hubungkan tombol Edit di Modal CV langsung ke form Edit anggota ini
+            const editBtn = document.getElementById('cv-btn-switch-edit');
+            editBtn.onclick = () => {
+                closeCVModal();
+                openEditModal(level, branchId, childId, gen4Id);
+            };
+
+            document.getElementById('cv-view-modal').classList.remove('hidden');
+        }
+
+        function closeCVModal() {
+            document.getElementById('cv-view-modal').classList.add('hidden');
+        }
+
+        function printMemberCV() {
+            document.body.classList.add('printing-cv');
+            window.print();
+            setTimeout(() => {
+                document.body.classList.remove('printing-cv');
+            }, 500);
+        }
+
+        function printFullTree() {
+            document.body.classList.remove('printing-cv');
+            window.print();
+        }
+
+        // =========================================================================
+        // 8. INTERACTIVE EDITOR (MODAL EDIT FOTO, CV, GEN 4, EKSPOR/IMPOR)
+        // =========================================================================
+        function switchEditTab(tabName) {
+            const tabs = ['basic', 'cv', 'children'];
+            tabs.forEach(t => {
+                const panel = document.getElementById(`edit-tab-${t}`);
+                const btn = document.getElementById(`tab-btn-${t}`);
+                if (!panel || !btn) return;
+
+                if (t === tabName) {
+                    panel.classList.remove('hidden');
+                    btn.className = "px-4 py-2.5 text-xs sm:text-sm font-bold rounded-t-xl bg-white text-emerald-950 border-t border-x border-cream-300 -mb-px flex items-center gap-1.5";
+                } else {
+                    panel.classList.add('hidden');
+                    btn.className = "px-4 py-2.5 text-xs sm:text-sm font-semibold rounded-t-xl text-gray-600 hover:text-emerald-900 flex items-center gap-1.5";
+                }
+            });
+        }
+
+        function updateEditPhotoPreview(photoSrc, memberName) {
+            const preview = document.getElementById('edit-photo-preview');
+            const removeBtn = document.getElementById('btn-remove-photo');
+            if (photoSrc && photoSrc.trim() !== '') {
+                preview.innerHTML = `<img src="${escapeHTML(photoSrc)}" alt="Preview" class="w-full h-full object-cover">`;
+                removeBtn.classList.remove('hidden');
+            } else {
+                preview.innerHTML = `<span>${escapeHTML(getInitials(memberName || 'A'))}</span>`;
+                removeBtn.classList.add('hidden');
+            }
+        }
+
+        async function handlePhotoUpload(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            try {
+                showToast('Memproses & mengompresi foto...', 'info');
+                const compressedDataUrl = await compressImageFile(file, 360, 0.78);
+                currentEditPhotoData = compressedDataUrl;
+                document.getElementById('edit-photo-url').value = '';
+                updateEditPhotoPreview(compressedDataUrl, document.getElementById('edit-name').value);
+                showToast('Foto siap disimpan! Klik "Simpan ke Database"');
+            } catch (err) {
+                console.error(err);
+                showToast('Gagal memproses gambar. Pastikan format JPG/PNG/WebP valid.', 'info');
+            }
+        }
+
+        function handlePhotoUrlInput(urlVal) {
+            const trimmed = urlVal.trim();
+            currentEditPhotoData = trimmed;
+            updateEditPhotoPreview(trimmed, document.getElementById('edit-name').value);
+        }
+
+        function removeMemberPhoto() {
+            currentEditPhotoData = '';
+            document.getElementById('edit-photo-url').value = '';
+            document.getElementById('edit-photo-file').value = '';
+            updateEditPhotoPreview('', document.getElementById('edit-name').value);
+            showToast('Foto dihapus dari pratinjau', 'info');
+        }
+
+        function openEditModal(level, branchId, childId = '', gen4Id = '') {
+            const modal = document.getElementById('detail-modal');
+            document.getElementById('edit-level').value = level;
+            document.getElementById('edit-branch-id').value = branchId;
+            document.getElementById('edit-child-id').value = childId;
+            document.getElementById('edit-gen4-id').value = gen4Id;
+
+            const genBadge = document.getElementById('modal-gen-badge');
+            const title = document.getElementById('modal-title');
+            const lineageInfo = document.getElementById('modal-lineage-info');
+            const tabChildrenBtn = document.getElementById('tab-btn-children');
+            const btnDelete = document.getElementById('btn-delete-member');
+
+            tabChildrenBtn.classList.add('hidden');
+            btnDelete.classList.add('hidden');
+            switchEditTab('basic');
+
+            let targetMember = null;
+
+            if (level === 'gen1') {
+                targetMember = familyData.root;
+                genBadge.textContent = 'Generasi 1 • Leluhur';
+                title.textContent = 'Edit Profil & Biografi Leluhur';
+                lineageInfo.innerHTML = `<p><strong>Status Nasab:</strong> Kakek Buyut &amp; Nenek Buyut (Sumber 8 Cabang Keluarga).</p>`;
+            } else if (level === 'gen2') {
+                const branch = familyData.branches.find(b => b.id === branchId);
+                if (!branch) return;
+                targetMember = branch;
+                genBadge.textContent = `Generasi 2 • Anak ke-${branch.order}`;
+                title.textContent = `Edit Profil: ${branch.name}`;
+                lineageInfo.innerHTML = `
+                    <p><strong>Orang Tua:</strong> ${escapeHTML(familyData.root.name)} &amp; ${escapeHTML(familyData.root.spouse)}</p>
+                    <p><strong>Urutan:</strong> Putra/Putri ke-${branch.order} dari 8 bersaudara (${branch.children.length} anak).</p>
+                `;
+            } else if (level === 'gen3') {
+                const branch = familyData.branches.find(b => b.id === branchId);
+                const child = branch?.children.find(c => c.id === childId);
+                if (!branch || !child) return;
+                targetMember = child;
+                genBadge.textContent = `Generasi 3 • Cucu`;
+                title.textContent = `Edit Profil: ${child.name}`;
+                lineageInfo.innerHTML = `
+                    <p><strong>Cabang Keluarga:</strong> Anak ke-${branch.order} (${escapeHTML(branch.name)} &amp; ${escapeHTML(branch.spouse || 'Pasangan')})</p>
+                    <p><strong>Urutan Keturunan:</strong> Anak ke-${child.order} dari ${branch.children.length} bersaudara</p>
+                `;
+                tabChildrenBtn.classList.remove('hidden');
+                renderGen4ListInModal(child);
+            } else if (level === 'gen4') {
+                const branch = familyData.branches.find(b => b.id === branchId);
+                const child = branch?.children.find(c => c.id === childId);
+                const g4 = child?.children?.find(g => g.id === gen4Id);
+                if (!branch || !child || !g4) return;
+                targetMember = g4;
+                genBadge.textContent = `Generasi 4 • Cicit`;
+                title.textContent = `Edit Profil: ${g4.name}`;
+                lineageInfo.innerHTML = `
+                    <p><strong>Orang Tua:</strong> ${escapeHTML(child.name)} &amp; ${escapeHTML(child.spouse || 'Pasangan')}</p>
+                    <p><strong>Cabang:</strong> ${escapeHTML(branch.name)}</p>
+                `;
+                btnDelete.classList.remove('hidden');
+            }
+
+            // Isi form identitas dasar
+            document.getElementById('edit-name').value = targetMember.name || '';
+            document.getElementById('edit-spouse').value = targetMember.spouse || '';
+            document.getElementById('edit-status').value = targetMember.status || 'hidup';
+            document.getElementById('edit-notes').value = targetMember.notes || '';
+
+            // Isi form foto
+            currentEditPhotoData = targetMember.photo || '';
+            document.getElementById('edit-photo-file').value = '';
+            document.getElementById('edit-photo-url').value = (currentEditPhotoData && !currentEditPhotoData.startsWith('data:')) ? currentEditPhotoData : '';
+            updateEditPhotoPreview(currentEditPhotoData, targetMember.name);
+
+            // Isi form CV lengkap
+            const cv = targetMember.cv || {};
+            document.getElementById('cv-birth-place').value = cv.birthPlace || '';
+            document.getElementById('cv-birth-date').value = cv.birthDate || '';
+            document.getElementById('cv-death-date').value = cv.deathDate || '';
+            document.getElementById('cv-phone').value = cv.phone || '';
+            document.getElementById('cv-address').value = cv.address || '';
+            document.getElementById('cv-education').value = cv.education || '';
+            document.getElementById('cv-occupation').value = cv.occupation || '';
+            document.getElementById('cv-achievements').value = cv.achievements || '';
+            document.getElementById('cv-bio').value = cv.bio || '';
+
+            modal.classList.remove('hidden');
+        }
+
+        function closeDetailModal() {
+            document.getElementById('detail-modal').classList.add('hidden');
+        }
+
+        function renderGen4ListInModal(child) {
+            const listContainer = document.getElementById('gen4-list');
+            const gen4 = child.children || [];
+            if (gen4.length === 0) {
+                listContainer.innerHTML = `<p class="text-xs text-gray-500 italic py-2">Belum ada data Generasi 4 (cicit) yang tercatat.</p>`;
+                return;
+            }
+            listContainer.innerHTML = gen4.map((item, idx) => `
+                <div class="flex items-center justify-between bg-cream-50 border border-cream-300 px-3 py-2 rounded-xl text-xs">
+                    <div class="flex items-center gap-2">
+                        ${renderAvatarHTML(item, 'w-7 h-7 text-[10px]', 'rounded-lg')}
+                        <div>
+                            <span class="font-bold text-gray-900">${idx + 1}. ${escapeHTML(item.name)}</span>
+                            ${item.spouse ? `<span class="text-gray-500 ml-1">(&amp; ${escapeHTML(item.spouse)})</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button type="button" onclick="openEditModal('gen4', '${document.getElementById('edit-branch-id').value}', '${child.id}', '${item.id}')" class="text-emerald-800 hover:bg-emerald-100 px-2 py-1 rounded-lg font-semibold" title="Edit Foto & CV Cicit">
+                            <i class="fa-solid fa-pen"></i> Edit CV
+                        </button>
+                        <button type="button" onclick="removeGen4Inline(${idx})" class="text-red-600 hover:bg-red-100 px-2 py-1 rounded-lg" title="Hapus">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function addGen4Inline() {
+            const branchId = document.getElementById('edit-branch-id').value;
+            const childId = document.getElementById('edit-child-id').value;
+            const nameInput = document.getElementById('new-gen4-name');
+            const spouseInput = document.getElementById('new-gen4-spouse');
+            const nameVal = nameInput.value.trim();
+            const spouseVal = spouseInput.value.trim();
+            if (!nameVal) return;
+
+            const branch = familyData.branches.find(b => b.id === branchId);
+            const child = branch?.children.find(c => c.id === childId);
+            if (!child) return;
+
+            if (!child.children) child.children = [];
+            child.children.push({
+                id: 'g4-' + Date.now(),
+                name: nameVal,
+                spouse: spouseVal,
+                status: 'hidup',
+                photo: '',
+                notes: '',
+                cv: {}
+            });
+
+            nameInput.value = '';
+            spouseInput.value = '';
+            await saveFamilyData();
+            renderGen4ListInModal(child);
+            renderApp();
+            showToast(`"${nameVal}" ditambahkan ke Generasi 4`);
+        }
+
+        async function removeGen4Inline(index) {
+            const branchId = document.getElementById('edit-branch-id').value;
+            const childId = document.getElementById('edit-child-id').value;
+            const branch = familyData.branches.find(b => b.id === branchId);
+            const child = branch?.children.find(c => c.id === childId);
+            if (!child || !child.children) return;
+
+            child.children.splice(index, 1);
+            await saveFamilyData();
+            renderGen4ListInModal(child);
+            renderApp();
+            showToast('Data Generasi 4 dihapus', 'info');
+        }
+
+        async function deleteCurrentMember() {
+            const level = document.getElementById('edit-level').value;
+            if (level !== 'gen4') return;
+            const branchId = document.getElementById('edit-branch-id').value;
+            const childId = document.getElementById('edit-child-id').value;
+            const gen4Id = document.getElementById('edit-gen4-id').value;
+
+            const branch = familyData.branches.find(b => b.id === branchId);
+            const child = branch?.children.find(c => c.id === childId);
+            if (!child || !child.children) return;
+
+            child.children = child.children.filter(g => g.id !== gen4Id);
+            await saveFamilyData();
+            closeDetailModal();
+            renderApp();
+            showToast('Anggota Generasi 4 dihapus dari database', 'info');
+        }
+
+        async function saveMemberChanges(e) {
+            e.preventDefault();
+            const level = document.getElementById('edit-level').value;
+            const branchId = document.getElementById('edit-branch-id').value;
+            const childId = document.getElementById('edit-child-id').value;
+            const gen4Id = document.getElementById('edit-gen4-id').value;
+
+            const newName = document.getElementById('edit-name').value.trim();
+            if (!newName) return;
+
+            const updatedFields = {
+                name: newName,
+                spouse: document.getElementById('edit-spouse').value.trim(),
+                status: document.getElementById('edit-status').value,
+                notes: document.getElementById('edit-notes').value.trim(),
+                photo: currentEditPhotoData,
+                cv: {
+                    birthPlace: document.getElementById('cv-birth-place').value.trim(),
+                    birthDate: document.getElementById('cv-birth-date').value.trim(),
+                    deathDate: document.getElementById('cv-death-date').value.trim(),
+                    phone: document.getElementById('cv-phone').value.trim(),
+                    address: document.getElementById('cv-address').value.trim(),
+                    education: document.getElementById('cv-education').value.trim(),
+                    occupation: document.getElementById('cv-occupation').value.trim(),
+                    achievements: document.getElementById('cv-achievements').value.trim(),
+                    bio: document.getElementById('cv-bio').value.trim()
+                }
+            };
+
+            if (level === 'gen1') {
+                Object.assign(familyData.root, updatedFields);
+            } else if (level === 'gen2') {
+                const branch = familyData.branches.find(b => b.id === branchId);
+                if (branch) Object.assign(branch, updatedFields);
+            } else if (level === 'gen3') {
+                const branch = familyData.branches.find(b => b.id === branchId);
+                const child = branch?.children.find(c => c.id === childId);
+                if (child) Object.assign(child, updatedFields);
+            } else if (level === 'gen4') {
+                const branch = familyData.branches.find(b => b.id === branchId);
+                const child = branch?.children.find(c => c.id === childId);
+                const g4 = child?.children?.find(g => g.id === gen4Id);
+                if (g4) Object.assign(g4, updatedFields);
+            }
+
+            await saveFamilyData();
+            closeDetailModal();
+            renderApp();
+            showToast('Foto, CV & data anggota berhasil disimpan ke database');
+        }
+
+        // Modal Tambah Cicit Cepat
+        function openAddGen4Modal() {
+            const branchSelect = document.getElementById('quick-branch-select');
+            branchSelect.innerHTML = familyData.branches.map(b =>
+                `<option value="${b.id}">Anak ke-${b.order}: ${escapeHTML(b.name)} &amp; ${escapeHTML(b.spouse || '-')}</option>`
+            ).join('');
+            populateQuickParentSelect();
+            document.getElementById('quick-gen4-name').value = '';
+            document.getElementById('quick-gen4-spouse').value = '';
+            document.getElementById('add-gen4-modal').classList.remove('hidden');
+        }
+
+        function closeAddGen4Modal() {
+            document.getElementById('add-gen4-modal').classList.add('hidden');
+        }
+
+        function populateQuickParentSelect() {
+            const branchId = document.getElementById('quick-branch-select').value;
+            const branch = familyData.branches.find(b => b.id === branchId);
+            const parentSelect = document.getElementById('quick-parent-select');
+            if (!branch) return;
+
+            parentSelect.innerHTML = branch.children.map(c =>
+                `<option value="${c.id}">${c.order}. ${escapeHTML(c.name)} ${c.spouse ? `(&amp; ${escapeHTML(c.spouse)})` : ''}</option>`
+            ).join('');
+        }
+
+        async function submitQuickAddGen4(e) {
+            e.preventDefault();
+            const branchId = document.getElementById('quick-branch-select').value;
+            const parentId = document.getElementById('quick-parent-select').value;
+            const name = document.getElementById('quick-gen4-name').value.trim();
+            const spouse = document.getElementById('quick-gen4-spouse').value.trim();
+
+            if (!name) return;
+
+            const branch = familyData.branches.find(b => b.id === branchId);
+            const parent = branch?.children.find(c => c.id === parentId);
+            if (!parent) return;
+
+            if (!parent.children) parent.children = [];
+            parent.children.push({
+                id: 'g4-' + Date.now(),
+                name,
+                spouse,
+                status: 'hidup',
+                photo: '',
+                notes: '',
+                cv: {}
+            });
+
+            branch.expanded = true;
+            await saveFamilyData();
+            closeAddGen4Modal();
+            renderApp();
+            showToast(`Berhasil menambahkan ${name} sebagai Generasi 4`);
+        }
+
+        // Export, Import & Reset Database
+        function exportDataJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(familyData, null, 2));
+            const downloadAnchor = document.createElement('a');
+            downloadAnchor.setAttribute("href", dataStr);
+            downloadAnchor.setAttribute("download", "Database_Silsilah_Bani_H_Mashum.json");
+            document.body.appendChild(downloadAnchor);
+            downloadAnchor.click();
+            downloadAnchor.remove();
+            showToast('Cadangan database lengkap (termasuk foto & CV) diunduh');
+        }
+
+        function triggerImportJSON() {
+            document.getElementById('import-json-input').click();
+        }
+
+        function handleImportJSON(event) {
+            const file = event.target.files?.[0];
+            if (!file) return;
+            const reader = new FileReader();
+            reader.onload = async (e) => {
+                try {
+                    const parsed = JSON.parse(e.target.result);
+                    if (!parsed.root || !Array.isArray(parsed.branches)) {
+                        throw new Error("Format file tidak sesuai struktur silsilah.");
+                    }
+                    familyData = normalizeFamilyData(parsed);
+                    await saveFamilyData();
+                    renderApp();
+                    showToast('Database silsilah berhasil dipulihkan dari file JSON!');
+                } catch (err) {
+                    console.error(err);
+                    showToast('File JSON tidak valid atau rusak.', 'info');
+                }
+                event.target.value = '';
+            };
+            reader.readAsText(file);
+        }
+
+        function confirmResetData() {
+            document.getElementById('reset-modal').classList.remove('hidden');
+        }
+
+        function closeResetModal() {
+            document.getElementById('reset-modal').classList.add('hidden');
+        }
+
+        async function executeResetData() {
+            familyData = JSON.parse(JSON.stringify(INITIAL_FAMILY_DATA));
+            await saveFamilyData();
+            closeResetModal();
+            resetAllFilters();
+            showToast('Database dikembalikan ke catatan asli awal');
+        }
+
+        // =========================================================================
+        // 9. KONTROL TAMPILAN, ZOOM & DRAG SCROLL
         // =========================================================================
         function renderApp() {
             renderStats();
@@ -1160,18 +2255,18 @@
             renderApp();
         }
 
-        function toggleBranchExpand(branchId) {
+        async function toggleBranchExpand(branchId) {
             const branch = familyData.branches.find(b => b.id === branchId);
             if (branch) {
                 branch.expanded = !branch.expanded;
-                saveFamilyData();
+                await saveToIndexedDB(familyData);
                 renderApp();
             }
         }
 
-        function expandAllBranches(expandState) {
+        async function expandAllBranches(expandState) {
             familyData.branches.forEach(b => b.expanded = expandState);
-            saveFamilyData();
+            await saveToIndexedDB(familyData);
             renderApp();
         }
 
@@ -1192,7 +2287,6 @@
             label.textContent = `${Math.round(treeZoomLevel * 100)}%`;
         }
 
-        // Drag-to-scroll untuk Pohon Visual
         function initTreeDragScroll() {
             const slider = document.getElementById('tree-scroll-wrapper');
             let isDown = false;
@@ -1238,251 +2332,43 @@
             renderApp();
         }
 
-        // =========================================================================
-        // 7. INTERACTIVE EDITOR (MODAL DETAIL, EDIT, TAMBAH GEN 4, EKSPOR, RESET)
-        // =========================================================================
-        function openDetailModal(level, branchId, childId = '') {
-            const modal = document.getElementById('detail-modal');
-            document.getElementById('edit-level').value = level;
-            document.getElementById('edit-branch-id').value = branchId;
-            document.getElementById('edit-child-id').value = childId;
-
-            const genBadge = document.getElementById('modal-gen-badge');
-            const title = document.getElementById('modal-title');
-            const lineageInfo = document.getElementById('modal-lineage-info');
-            const nameInput = document.getElementById('edit-name');
-            const spouseInput = document.getElementById('edit-spouse');
-            const notesInput = document.getElementById('edit-notes');
-            const gen4Section = document.getElementById('gen4-section');
-            const btnDelete = document.getElementById('btn-delete-member');
-
-            gen4Section.classList.add('hidden');
-            btnDelete.classList.add('hidden');
-
-            if (level === 'gen1') {
-                genBadge.textContent = 'Generasi 1 • Leluhur';
-                title.textContent = 'Edit Data Leluhur Utama';
-                lineageInfo.innerHTML = `<p><strong>Status:</strong> Kakek Buyut & Nenek Buyut (Sumber Nasab 8 Cabang Keluarga).</p>`;
-                nameInput.value = familyData.root.name;
-                spouseInput.value = familyData.root.spouse;
-                notesInput.value = familyData.root.notes || '';
-            } else if (level === 'gen2') {
-                const branch = familyData.branches.find(b => b.id === branchId);
-                if (!branch) return;
-                genBadge.textContent = `Generasi 2 • Anak ke-${branch.order}`;
-                title.textContent = `${branch.name}`;
-                lineageInfo.innerHTML = `
-                    <p><strong>Orang Tua:</strong> ${escapeHTML(familyData.root.name)} &amp; ${escapeHTML(familyData.root.spouse)}</p>
-                    <p><strong>Urutan:</strong> Putra/Putri ke-${branch.order} dari 8 bersaudara (Memiliki ${branch.children.length} anak).</p>
-                `;
-                nameInput.value = branch.name;
-                spouseInput.value = branch.spouse || '';
-                notesInput.value = branch.notes || '';
-            } else if (level === 'gen3') {
-                const branch = familyData.branches.find(b => b.id === branchId);
-                const child = branch?.children.find(c => c.id === childId);
-                if (!branch || !child) return;
-
-                genBadge.textContent = `Generasi 3 • Cucu`;
-                title.textContent = `${child.name}`;
-                lineageInfo.innerHTML = `
-                    <p><strong>Cabang Keluarga:</strong> Anak ke-${branch.order} (${escapeHTML(branch.name)} &amp; ${escapeHTML(branch.spouse || 'Pasangan')})</p>
-                    <p><strong>Urutan Keturunan:</strong> Anak ke-${child.order} dari ${branch.children.length} bersaudara</p>
-                `;
-                nameInput.value = child.name;
-                spouseInput.value = child.spouse || '';
-                notesInput.value = child.notes || '';
-
-                gen4Section.classList.remove('hidden');
-                renderGen4ListInModal(child);
-            }
-
-            modal.classList.remove('hidden');
-        }
-
-        function closeDetailModal() {
-            document.getElementById('detail-modal').classList.add('hidden');
-        }
-
-        function renderGen4ListInModal(child) {
-            const listContainer = document.getElementById('gen4-list');
-            const gen4 = child.children || [];
-            if (gen4.length === 0) {
-                listContainer.innerHTML = `<p class="text-xs text-gray-500 italic">Belum ada data Generasi 4 (cicit) yang tercatat.</p>`;
-                return;
-            }
-            listContainer.innerHTML = gen4.map((item, idx) => `
-                <div class="flex items-center justify-between bg-cream-50 border border-cream-300 px-3 py-1.5 rounded-lg text-xs">
-                    <span><strong>${idx + 1}.</strong> ${escapeHTML(item.name)} ${item.spouse ? `<span class="text-gray-500">(&amp; ${escapeHTML(item.spouse)})</span>` : ''}</span>
-                    <button type="button" onclick="removeGen4Inline(${idx})" class="text-red-600 hover:text-red-800 px-1.5 py-0.5" title="Hapus">
-                        <i class="fa-solid fa-trash-can"></i>
-                    </button>
-                </div>
-            `).join('');
-        }
-
-        function addGen4Inline() {
-            const branchId = document.getElementById('edit-branch-id').value;
-            const childId = document.getElementById('edit-child-id').value;
-            const input = document.getElementById('new-gen4-name');
-            const nameVal = input.value.trim();
-            if (!nameVal) return;
-
-            const branch = familyData.branches.find(b => b.id === branchId);
-            const child = branch?.children.find(c => c.id === childId);
-            if (!child) return;
-
-            if (!child.children) child.children = [];
-            child.children.push({
-                id: 'g4-' + Date.now(),
-                name: nameVal,
-                spouse: ''
-            });
-
-            input.value = '';
-            saveFamilyData();
-            renderGen4ListInModal(child);
-            renderApp();
-            showToast(`"${nameVal}" ditambahkan ke Generasi 4`);
-        }
-
-        function removeGen4Inline(index) {
-            const branchId = document.getElementById('edit-branch-id').value;
-            const childId = document.getElementById('edit-child-id').value;
-            const branch = familyData.branches.find(b => b.id === branchId);
-            const child = branch?.children.find(c => c.id === childId);
-            if (!child || !child.children) return;
-
-            child.children.splice(index, 1);
-            saveFamilyData();
-            renderGen4ListInModal(child);
-            renderApp();
-            showToast('Data Generasi 4 dihapus', 'info');
-        }
-
-        function saveMemberChanges(e) {
-            e.preventDefault();
-            const level = document.getElementById('edit-level').value;
-            const branchId = document.getElementById('edit-branch-id').value;
-            const childId = document.getElementById('edit-child-id').value;
-
-            const newName = document.getElementById('edit-name').value.trim();
-            const newSpouse = document.getElementById('edit-spouse').value.trim();
-            const newNotes = document.getElementById('edit-notes').value.trim();
-
-            if (!newName) return;
-
-            if (level === 'gen1') {
-                familyData.root.name = newName;
-                familyData.root.spouse = newSpouse;
-                familyData.root.notes = newNotes;
-            } else if (level === 'gen2') {
-                const branch = familyData.branches.find(b => b.id === branchId);
-                if (branch) {
-                    branch.name = newName;
-                    branch.spouse = newSpouse;
-                    branch.notes = newNotes;
-                }
-            } else if (level === 'gen3') {
-                const branch = familyData.branches.find(b => b.id === branchId);
-                const child = branch?.children.find(c => c.id === childId);
-                if (child) {
-                    child.name = newName;
-                    child.spouse = newSpouse;
-                    child.notes = newNotes;
-                }
-            }
-
-            saveFamilyData();
-            closeDetailModal();
-            renderApp();
-            showToast('Perubahan data silsilah berhasil disimpan');
-        }
-
-        // Modal Tambah Cicit Cepat
-        function openAddGen4Modal() {
-            const branchSelect = document.getElementById('quick-branch-select');
-            branchSelect.innerHTML = familyData.branches.map(b =>
-                `<option value="${b.id}">Anak ke-${b.order}: ${escapeHTML(b.name)} &amp; ${escapeHTML(b.spouse || '-')}</option>`
-            ).join('');
-            populateQuickParentSelect();
-            document.getElementById('quick-gen4-name').value = '';
-            document.getElementById('quick-gen4-spouse').value = '';
-            document.getElementById('add-gen4-modal').classList.remove('hidden');
-        }
-
-        function closeAddGen4Modal() {
-            document.getElementById('add-gen4-modal').classList.add('hidden');
-        }
-
-        function populateQuickParentSelect() {
-            const branchId = document.getElementById('quick-branch-select').value;
-            const branch = familyData.branches.find(b => b.id === branchId);
-            const parentSelect = document.getElementById('quick-parent-select');
-            if (!branch) return;
-
-            parentSelect.innerHTML = branch.children.map(c =>
-                `<option value="${c.id}">${c.order}. ${escapeHTML(c.name)} ${c.spouse ? `(&amp; ${escapeHTML(c.spouse)})` : ''}</option>`
-            ).join('');
-        }
-
-        function submitQuickAddGen4(e) {
-            e.preventDefault();
-            const branchId = document.getElementById('quick-branch-select').value;
-            const parentId = document.getElementById('quick-parent-select').value;
-            const name = document.getElementById('quick-gen4-name').value.trim();
-            const spouse = document.getElementById('quick-gen4-spouse').value.trim();
-
-            if (!name) return;
-
-            const branch = familyData.branches.find(b => b.id === branchId);
-            const parent = branch?.children.find(c => c.id === parentId);
-            if (!parent) return;
-
-            if (!parent.children) parent.children = [];
-            parent.children.push({
-                id: 'g4-' + Date.now(),
-                name,
-                spouse
-            });
-
-            branch.expanded = true;
-            saveFamilyData();
-            closeAddGen4Modal();
-            renderApp();
-            showToast(`Berhasil menambahkan ${name} sebagai Generasi 4`);
-        }
-
-        // Export & Reset Data
-        function exportDataJSON() {
-            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(familyData, null, 2));
-            const downloadAnchor = document.createElement('a');
-            downloadAnchor.setAttribute("href", dataStr);
-            downloadAnchor.setAttribute("download", "Silsilah_Bani_H_Mashum_Masrobatun.json");
-            document.body.appendChild(downloadAnchor);
-            downloadAnchor.click();
-            downloadAnchor.remove();
-            showToast('File cadangan silsilah (.json) berhasil diunduh');
-        }
-
-        function confirmResetData() {
-            document.getElementById('reset-modal').classList.remove('hidden');
-        }
-
-        function closeResetModal() {
-            document.getElementById('reset-modal').classList.add('hidden');
-        }
-
-        function executeResetData() {
-            familyData = JSON.parse(JSON.stringify(INITIAL_FAMILY_DATA));
-            saveFamilyData();
-            closeResetModal();
-            resetAllFilters();
-            showToast('Data silsilah dikembalikan ke versi awal');
-        }
+        // Ekspos fungsi ke window agar bisa dipanggil oleh atribut onclick HTML
+        Object.assign(window, {
+            openAddGen4Modal,
+            closeAddGen4Modal,
+            populateQuickParentSelect,
+            submitQuickAddGen4,
+            printFullTree,
+            printMemberCV,
+            exportDataJSON,
+            triggerImportJSON,
+            handleImportJSON,
+            confirmResetData,
+            closeResetModal,
+            executeResetData,
+            clearSearch,
+            resetAllFilters,
+            switchViewMode,
+            expandAllBranches,
+            toggleBranchExpand,
+            zoomTree,
+            resetTreeZoom,
+            openCVModal,
+            closeCVModal,
+            openEditModal,
+            closeDetailModal,
+            switchEditTab,
+            handlePhotoUpload,
+            handlePhotoUrlInput,
+            removeMemberPhoto,
+            addGen4Inline,
+            removeGen4Inline,
+            deleteCurrentMember,
+            saveMemberChanges
+        });
 
         // =========================================================================
-        // 8. INISIALISASI HALAMAN
+        // 10. INISIALISASI HALAMAN & DATABASE
         // =========================================================================
         window.addEventListener('DOMContentLoaded', () => {
             const searchInput = document.getElementById('search-input');
@@ -1512,6 +2398,7 @@
 
             initTreeDragScroll();
             renderApp();
+            initDatabaseConnection();
         });
     </script>
 </body>
