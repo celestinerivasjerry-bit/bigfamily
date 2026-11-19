@@ -690,9 +690,7 @@
     <!-- SCRIPT UTAMA & INTEGRASI DATABASE REAL-TIME                           -->
     <!-- ===================================================================== -->
     <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, getDoc, setDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
         // =========================================================================
         // 1. DATA INDUK SILSILAH BANI H. MA'SHUM & NYAI MASROBATUN (AKURAT)
@@ -824,15 +822,18 @@
         let treeZoomLevel = 1.0;
         let currentEditPhotoData = ''; // Menyimpan data foto saat modal edit terbuka
 
-        // State Database Firebase
-        let db = null;
-        let auth = null;
-        let currentUser = null;
-        let isFirebaseConnected = false;
-        const appId = typeof __app_id !== 'undefined' ? __app_id : 'bani-mashum-silsilah';
+        // =========================================================================
+        // KONFIGURASI SUPABASE
+        // =========================================================================
+        const SUPABASE_URL = "https://sftovepfclcfakiuewrf.supabase.co";
+        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmdG92ZXBmY2xjZmFraXVld3JmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxMDA5NTYsImV4cCI6MjExMDY3Njk1Nn0.1PGTZb1l9ugnJJAlcjCuRz-rrWAqbtLEeuCubABItXk";
+        const RECORD_ID = "master_tree";
+
+        let supabase = null;
+        let isSupabaseConnected = false;
 
         // =========================================================================
-        // 2. INDEXEDDB FALLBACK & DATABASE REAL-TIME FIRESTORE
+        // 2. INDEXEDDB FALLBACK & DATABASE REAL-TIME SUPABASE
         // =========================================================================
         function updateSyncBadge(status, text) {
             const dot = document.getElementById('db-sync-dot');
@@ -920,22 +921,25 @@
         }
 
         async function saveFamilyData() {
-            // Selalu simpan cadangan lokal di IndexedDB (mendukung kapasitas besar untuk foto)
+            // Selalu simpan cadangan lokal di IndexedDB
             await saveToIndexedDB(familyData);
 
-            // Jika database cloud terhubung, sinkronkan ke Firestore
-            if (isFirebaseConnected && db && currentUser) {
+            // Sinkronkan ke Supabase
+            if (isSupabaseConnected && supabase) {
                 try {
-                    updateSyncBadge('saving', 'Menyimpan ke Database...');
-                    const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'silsilah_keluarga', 'master_tree');
-                    await setDoc(docRef, {
-                        payload: JSON.stringify(familyData),
-                        updatedAt: new Date().toISOString(),
-                        updatedBy: currentUser.uid
-                    });
-                    updateSyncBadge('online', 'Database Cloud Tersinkron');
+                    updateSyncBadge('saving', 'Menyimpan ke Supabase...');
+                    const { error } = await supabase
+                        .from('silsilah_keluarga')
+                        .upsert({
+                            id: RECORD_ID,
+                            payload: familyData,
+                            updated_at: new Date().toISOString()
+                        });
+
+                    if (error) throw error;
+                    updateSyncBadge('online', 'Supabase Real-Time Tersinkron');
                 } catch (err) {
-                    console.error("Gagal sinkronisasi ke Firestore:", err);
+                    console.error("Gagal sinkronisasi ke Supabase:", err);
                     updateSyncBadge('offline', 'Tersimpan Lokal (Offline)');
                 }
             } else {
@@ -951,62 +955,59 @@
                 renderApp();
             }
 
-            // Cek konfigurasi Firebase dari environment
-            if (typeof __firebase_config === 'undefined' || !__firebase_config) {
-                updateSyncBadge('offline', 'Database Lokal (Browser)');
-                return;
-            }
-
             try {
-                const firebaseConfig = JSON.parse(__firebase_config);
-                const app = initializeApp(firebaseConfig);
-                auth = getAuth(app);
-                db = getFirestore(app);
+                supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-                // Wajib Autentikasi terlebih dahulu sebelum akses Firestore
-                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    const cred = await signInWithCustomToken(auth, __initial_auth_token);
-                    currentUser = cred.user;
+                // Ambil data awal dari tabel silsilah_keluarga
+                const { data, error } = await supabase
+                    .from('silsilah_keluarga')
+                    .select('payload')
+                    .eq('id', RECORD_ID)
+                    .maybeSingle();
+
+                if (error) throw error;
+                isSupabaseConnected = true;
+
+                if (data && data.payload) {
+                    familyData = normalizeFamilyData(data.payload);
+                    await saveToIndexedDB(familyData);
+                    renderApp();
                 } else {
-                    const cred = await signInAnonymously(auth);
-                    currentUser = cred.user;
-                }
-
-                if (!currentUser) return;
-                isFirebaseConnected = true;
-
-                // Path Wajib: /artifacts/{appId}/public/data/{collectionName}/{docId}
-                const docRef = doc(db, 'artifacts', appId, 'public', 'data', 'silsilah_keluarga', 'master_tree');
-
-                // Cek apakah data sudah ada di cloud; jika belum, unggah data awal
-                const initialSnap = await getDoc(docRef);
-                if (!initialSnap.exists()) {
-                    await setDoc(docRef, {
-                        payload: JSON.stringify(familyData),
-                        updatedAt: new Date().toISOString(),
-                        updatedBy: currentUser.uid
+                    // Jika database masih kosong, unggah data awal
+                    await supabase.from('silsilah_keluarga').upsert({
+                        id: RECORD_ID,
+                        payload: familyData,
+                        updated_at: new Date().toISOString()
                     });
                 }
 
                 // Dengarkan perubahan real-time dari anggota keluarga lain
-                onSnapshot(docRef, (snapshot) => {
-                    if (snapshot.exists()) {
-                        const data = snapshot.data();
-                        if (data && data.payload) {
-                            const parsed = normalizeFamilyData(JSON.parse(data.payload));
-                            familyData = parsed;
-                            saveToIndexedDB(familyData);
-                            renderApp();
+                supabase
+                    .channel('public:silsilah_keluarga')
+                    .on(
+                        'postgres_changes',
+                        {
+                            event: '*',
+                            schema: 'public',
+                            table: 'silsilah_keluarga',
+                            filter: `id=eq.${RECORD_ID}`
+                        },
+                        async (change) => {
+                            if (change.new && change.new.payload) {
+                                familyData = normalizeFamilyData(change.new.payload);
+                                await saveToIndexedDB(familyData);
+                                renderApp();
+                            }
                         }
-                    }
-                    updateSyncBadge('online', 'Database Cloud Real-Time');
-                }, (error) => {
-                    console.error("Error listener Firestore:", error);
-                    updateSyncBadge('offline', 'Mode Offline (Lokal)');
-                });
+                    )
+                    .subscribe((status) => {
+                        if (status === 'SUBSCRIBED') {
+                            updateSyncBadge('online', 'Database Supabase Real-Time');
+                        }
+                    });
 
             } catch (err) {
-                console.error("Inisialisasi Firebase gagal, memakai database lokal:", err);
+                console.error("Inisialisasi Supabase gagal, memakai database lokal:", err);
                 updateSyncBadge('offline', 'Database Lokal (Browser)');
             }
         }
