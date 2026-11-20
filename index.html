@@ -450,7 +450,7 @@
                         <i class="fa-solid fa-id-card text-gold-600"></i> Biodata &amp; CV Lengkap
                     </button>
                     <button type="button" id="tab-btn-children" onclick="switchEditTab('children')" class="hidden px-4 py-2.5 text-xs sm:text-sm font-semibold rounded-t-xl text-gray-600 hover:text-emerald-900 flex items-center gap-1.5">
-                        <i class="fa-solid fa-children text-sage-600"></i> Keturunan (Gen 4)
+                        <i class="fa-solid fa-children text-sage-600"></i> <span id="tab-btn-children-label">Keturunan</span>
                     </button>
                 </div>
 
@@ -459,6 +459,7 @@
                     <input type="hidden" id="edit-branch-id">
                     <input type="hidden" id="edit-child-id">
                     <input type="hidden" id="edit-gen4-id">
+                    <input type="hidden" id="edit-gen5-id">
 
                     <!-- TAB 1: IDENTITAS DASAR & FOTO PROFIL -->
                     <div id="edit-tab-basic" class="space-y-4">
@@ -568,22 +569,23 @@
                         </div>
                     </div>
 
-                    <!-- TAB 3: DAFTAR KETURUNAN GENERASI 4 (KHUSUS GEN 3) -->
+                    <!-- TAB 3: DAFTAR KETURUNAN (GEN 3 UNTUK CABANG GEN 2, ATAU GEN 4 UNTUK GEN 3) -->
                     <div id="edit-tab-children" class="hidden space-y-4">
                         <div class="flex items-center justify-between">
-                            <label class="text-sm font-bold text-emerald-950 flex items-center gap-1.5">
-                                <i class="fa-solid fa-children text-gold-600"></i> Daftar Putra/Putri (Generasi 4 / Cicit)
+                            <label id="children-tab-heading" class="text-sm font-bold text-emerald-950 flex items-center gap-1.5">
+                                <i class="fa-solid fa-children text-gold-600"></i> Daftar Putra/Putri
                             </label>
                         </div>
-                        <div id="gen4-list" class="space-y-2 max-h-52 overflow-y-auto pr-1">
-                            <!-- List cicit -->
+                        <div id="gen4-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
+                            <!-- List keturunan -->
                         </div>
                         <div class="p-3 rounded-xl bg-cream-100 border border-cream-300 space-y-2">
-                            <p class="text-xs font-bold text-sage-700">Tambah Anak (Generasi 4):</p>
+                            <p id="children-add-heading" class="text-xs font-bold text-sage-700">Tambah Anak:</p>
                             <div class="flex flex-col sm:flex-row gap-2">
                                 <input type="text" id="new-gen4-name" placeholder="Nama lengkap anak..." class="flex-1 px-3 py-2 rounded-xl border border-gray-300 bg-white text-sm focus:ring-2 focus:ring-emerald-700">
-                                <input type="text" id="new-gen4-spouse" placeholder="Pasangan (opsional)..." class="sm:w-44 px-3 py-2 rounded-xl border border-gray-300 bg-white text-sm focus:ring-2 focus:ring-emerald-700">
-                                <button type="button" onclick="addGen4Inline()" class="px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white text-xs font-bold shrink-0">
+                                <input type="text" id="new-gen4-spouse" placeholder="Pasangan (opsional)..." class="sm:w-40 px-3 py-2 rounded-xl border border-gray-300 bg-white text-sm focus:ring-2 focus:ring-emerald-700">
+                                <input type="number" id="new-gen3-order" min="1" placeholder="Urutan" title="Nomor urutan anak (opsional)" class="hidden sm:w-20 px-2.5 py-2 rounded-xl border border-gray-300 bg-white text-sm focus:ring-2 focus:ring-emerald-700">
+                                <button type="button" onclick="addChildInline()" class="px-4 py-2 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white text-xs font-bold shrink-0">
                                     + Tambah
                                 </button>
                             </div>
@@ -910,6 +912,11 @@
                     c.children.forEach(g4 => {
                         g4.cv = g4.cv || {};
                         g4.photo = g4.photo || "";
+                        g4.children = Array.isArray(g4.children) ? g4.children : [];
+                        g4.children.forEach(g5 => {
+                            g5.cv = g5.cv || {};
+                            g5.photo = g5.photo || "";
+                        });
                     });
                 });
             });
@@ -1140,6 +1147,8 @@
             let gen3Spouses = 0;
             let gen4Count = 0;
             let gen4Spouses = 0;
+            let gen5Count = 0;
+            let gen5Spouses = 0;
             let profilesWithPhotoOrCV = hasFilledCV(familyData.root) ? 1 : 0;
 
             familyData.branches.forEach(b => {
@@ -1154,17 +1163,25 @@
                         c.children.forEach(g4 => {
                             if (g4.spouse && g4.spouse.trim() !== '') gen4Spouses++;
                             if (hasFilledCV(g4)) profilesWithPhotoOrCV++;
+                            if (g4.children && Array.isArray(g4.children)) {
+                                gen5Count += g4.children.length;
+                                g4.children.forEach(g5 => {
+                                    if (g5.spouse && g5.spouse.trim() !== '') gen5Spouses++;
+                                    if (hasFilledCV(g5)) profilesWithPhotoOrCV++;
+                                });
+                            }
                         });
                     }
                 });
             });
 
-            const totalRecordedPeople = gen1Individuals + gen2Count + gen2Spouses + gen3Count + gen3Spouses + gen4Count + gen4Spouses;
+            const totalRecordedPeople = gen1Individuals + gen2Count + gen2Spouses + gen3Count + gen3Spouses + gen4Count + gen4Spouses + gen5Count + gen5Spouses;
 
             return {
                 gen2Count,
                 gen3Count,
                 gen4Count,
+                gen5Count,
                 profilesWithPhotoOrCV,
                 totalRecordedPeople
             };
@@ -1214,9 +1231,9 @@
                     accent: "text-gold-400"
                 },
                 {
-                    label: "Generasi 4 (Cicit)",
-                    value: `${stats.gen4Count} Cicit`,
-                    sub: stats.gen4Count > 0 ? "Tercatat di database" : "Dapat ditambahkan",
+                    label: "Gen 4 & Gen 5",
+                    value: `${stats.gen4Count} Cicit • ${stats.gen5Count} Piut`,
+                    sub: stats.gen5Count > 0 ? "Hingga Generasi 5 tercatat" : "Dapat ditambah hingga Gen 5",
                     icon: "fa-seedling",
                     accent: "text-emerald-300"
                 },
@@ -1289,7 +1306,9 @@
                         if (branchMatchesQuery && selectedSpouseFilter === 'all') return true;
 
                         const childMatches = memberMatchesSearch(child, q);
-                        const gen4Matches = (child.children || []).some(g4 => memberMatchesSearch(g4, q));
+                        const gen4Matches = (child.children || []).some(g4 =>
+                            memberMatchesSearch(g4, q) || (g4.children || []).some(g5 => memberMatchesSearch(g5, q))
+                        );
                         return childMatches || gen4Matches || branchMatchesQuery;
                     });
 
@@ -1392,20 +1411,40 @@
                                 </div>
                             </div>
 
-                            <!-- Sub-daftar Generasi 4 (Cicit) jika ada -->
+                            <!-- Sub-daftar Generasi 4 (Cicit) & Generasi 5 (Piut) jika ada -->
                             ${gen4List.length > 0 ? `
-                                <div class="ml-12 pl-3 border-l-2 border-gold-400/70 space-y-1.5 pt-1">
+                                <div class="ml-12 pl-3 border-l-2 border-gold-400/70 space-y-2 pt-1">
                                     <p class="text-[11px] font-bold uppercase tracking-wider text-sage-600">Keturunan / Generasi 4 (${gen4List.length}):</p>
-                                    <div class="flex flex-wrap gap-1.5">
-                                        ${gen4List.map((g4, idx) => `
-                                            <button type="button" onclick="openCVModal('gen4', '${branch.id}', '${child.id}', '${g4.id}')" 
-                                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white hover:bg-gold-100 border border-cream-300 hover:border-gold-400 text-xs text-gray-800 shadow-2xs transition-colors"
-                                                title="Klik untuk lihat CV & Foto ${escapeHTML(g4.name)}">
-                                                ${g4.photo ? `<img src="${escapeHTML(g4.photo)}" class="w-4 h-4 rounded-full object-cover">` : `<strong class="text-emerald-800">${idx + 1}.</strong>`}
-                                                <span class="font-semibold">${highlightText(g4.name, q)}</span>
-                                                ${g4.spouse ? `<span class="text-gray-500">(&amp; ${highlightText(g4.spouse, q)})</span>` : ''}
-                                            </button>
-                                        `).join('')}
+                                    <div class="flex flex-col gap-1.5">
+                                        ${gen4List.map((g4, idx) => {
+                                            const gen5List = g4.children || [];
+                                            return `
+                                                <div class="flex flex-col items-start gap-1">
+                                                    <button type="button" onclick="openCVModal('gen4', '${branch.id}', '${child.id}', '${g4.id}')" 
+                                                        class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-white hover:bg-gold-100 border border-cream-300 hover:border-gold-400 text-xs text-gray-800 shadow-2xs transition-colors"
+                                                        title="Klik untuk lihat CV, Foto, atau tambah anak Gen 5 dari ${escapeHTML(g4.name)}">
+                                                        ${g4.photo ? `<img src="${escapeHTML(g4.photo)}" class="w-4 h-4 rounded-full object-cover">` : `<strong class="text-emerald-800">${idx + 1}.</strong>`}
+                                                        <span class="font-semibold">${highlightText(g4.name, q)}</span>
+                                                        ${g4.spouse ? `<span class="text-gray-500">(&amp; ${highlightText(g4.spouse, q)})</span>` : ''}
+                                                        ${gen5List.length > 0 ? `<span class="ml-1 px-1.5 py-0.2 rounded bg-emerald-900 text-gold-300 text-[10px] font-bold">+${gen5List.length} Gen 5</span>` : ''}
+                                                    </button>
+                                                    ${gen5List.length > 0 ? `
+                                                        <div class="ml-4 pl-2.5 border-l border-emerald-700/40 flex flex-wrap items-center gap-1">
+                                                            <span class="text-[10px] font-bold text-emerald-800">Gen 5:</span>
+                                                            ${gen5List.map((g5, g5Idx) => `
+                                                                <button type="button" onclick="openCVModal('gen5', '${branch.id}', '${child.id}', '${g4.id}', '${g5.id}')"
+                                                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sage-50 hover:bg-gold-100 border border-sage-200 text-[11px] text-gray-800 transition-colors"
+                                                                    title="Lihat Profil & CV ${escapeHTML(g5.name)}">
+                                                                    <strong class="text-emerald-800">${g5Idx + 1}.</strong>
+                                                                    <span class="font-medium">${highlightText(g5.name, q)}</span>
+                                                                    ${g5.spouse ? `<span class="text-gray-500">(&amp; ${highlightText(g5.spouse, q)})</span>` : ''}
+                                                                </button>
+                                                            `).join('')}
+                                                        </div>
+                                                    ` : ''}
+                                                </div>
+                                            `;
+                                        }).join('')}
                                     </div>
                                 </div>
                             ` : ''}
@@ -1597,7 +1636,7 @@
         // =========================================================================
         // 7. TAMPILAN MODAL CV / BIOGRAFI LENGKAP ANGGOTA
         // =========================================================================
-        function openCVModal(level, branchId, childId = '', gen4Id = '') {
+        function openCVModal(level, branchId, childId = '', gen4Id = '', gen5Id = '') {
             let member = null;
             let genLabel = '';
             let lineageHTML = '';
@@ -1646,7 +1685,25 @@
                     <p><strong>Kakek/Nenek:</strong> ${escapeHTML(branch.name)} &amp; ${escapeHTML(branch.spouse || 'Pasangan')}</p>
                     <p><strong>Buyut:</strong> ${escapeHTML(familyData.root.name)} &amp; ${escapeHTML(familyData.root.spouse)}</p>
                 `;
-                childrenHTML = 'Generasi ke-4 Bani H. Ma\'shum &amp; Nyai Masrobatun';
+                const g5List = g4.children || [];
+                childrenHTML = g5List.length > 0
+                    ? g5List.map((g, idx) => `${idx + 1}. ${escapeHTML(g.name)}`).join(' • ')
+                    : 'Belum ada data Generasi 5 (Piut) tercatat';
+            } else if (level === 'gen5') {
+                const branch = familyData.branches.find(b => b.id === branchId);
+                const child = branch?.children.find(c => c.id === childId);
+                const g4 = child?.children?.find(g => g.id === gen4Id);
+                const g5 = g4?.children?.find(g => g.id === gen5Id);
+                if (!branch || !child || !g4 || !g5) return;
+                member = g5;
+                genLabel = `Generasi 5 • Piut (Cabang ${branch.name})`;
+                lineageHTML = `
+                    <p><strong>Orang Tua (Gen 4):</strong> ${escapeHTML(g4.name)} &amp; ${escapeHTML(g4.spouse || 'Pasangan')}</p>
+                    <p><strong>Kakek/Nenek (Gen 3):</strong> ${escapeHTML(child.name)} &amp; ${escapeHTML(child.spouse || 'Pasangan')}</p>
+                    <p><strong>Buyut (Gen 2):</strong> ${escapeHTML(branch.name)} &amp; ${escapeHTML(branch.spouse || 'Pasangan')}</p>
+                    <p><strong>Canggah (Gen 1):</strong> ${escapeHTML(familyData.root.name)} &amp; ${escapeHTML(familyData.root.spouse)}</p>
+                `;
+                childrenHTML = 'Generasi ke-5 (Piut) Bani H. Ma\'shum &amp; Nyai Masrobatun';
             }
 
             const cv = member.cv || {};
@@ -1764,7 +1821,7 @@
             const editBtn = document.getElementById('cv-btn-switch-edit');
             editBtn.onclick = () => {
                 closeCVModal();
-                openEditModal(level, branchId, childId, gen4Id);
+                openEditModal(level, branchId, childId, gen4Id, gen5Id);
             };
 
             document.getElementById('cv-view-modal').classList.remove('hidden');
@@ -1849,12 +1906,13 @@
             showToast('Foto dihapus dari pratinjau', 'info');
         }
 
-        function openEditModal(level, branchId, childId = '', gen4Id = '') {
+        function openEditModal(level, branchId, childId = '', gen4Id = '', gen5Id = '') {
             const modal = document.getElementById('detail-modal');
             document.getElementById('edit-level').value = level;
             document.getElementById('edit-branch-id').value = branchId;
             document.getElementById('edit-child-id').value = childId;
             document.getElementById('edit-gen4-id').value = gen4Id;
+            document.getElementById('edit-gen5-id').value = gen5Id;
 
             const genBadge = document.getElementById('modal-gen-badge');
             const title = document.getElementById('modal-title');
@@ -1883,18 +1941,29 @@
                     <p><strong>Orang Tua:</strong> ${escapeHTML(familyData.root.name)} &amp; ${escapeHTML(familyData.root.spouse)}</p>
                     <p><strong>Urutan:</strong> Putra/Putri ke-${branch.order} dari 8 bersaudara (${branch.children.length} anak).</p>
                 `;
+                tabChildrenBtn.classList.remove('hidden');
+                document.getElementById('tab-btn-children-label').textContent = `Anak (Gen 3)`;
+                document.getElementById('children-tab-heading').innerHTML = `<i class="fa-solid fa-children text-gold-600"></i> Daftar Putra/Putri (Generasi 3 / Cucu)`;
+                document.getElementById('children-add-heading').textContent = `Tambah Anak (Generasi 3) ke Cabang ${branch.name}:`;
+                document.getElementById('new-gen3-order').classList.remove('hidden');
+                document.getElementById('new-gen3-order').value = branch.children.length + 1;
+                renderGen3ListInModal(branch);
             } else if (level === 'gen3') {
                 const branch = familyData.branches.find(b => b.id === branchId);
                 const child = branch?.children.find(c => c.id === childId);
                 if (!branch || !child) return;
                 targetMember = child;
-                genBadge.textContent = `Generasi 3 • Cucu`;
+                genBadge.textContent = `Generasi 3 • Anak ke-${child.order}`;
                 title.textContent = `Edit Profil: ${child.name}`;
                 lineageInfo.innerHTML = `
                     <p><strong>Cabang Keluarga:</strong> Anak ke-${branch.order} (${escapeHTML(branch.name)} &amp; ${escapeHTML(branch.spouse || 'Pasangan')})</p>
                     <p><strong>Urutan Keturunan:</strong> Anak ke-${child.order} dari ${branch.children.length} bersaudara</p>
                 `;
                 tabChildrenBtn.classList.remove('hidden');
+                document.getElementById('tab-btn-children-label').textContent = `Keturunan (Gen 4)`;
+                document.getElementById('children-tab-heading').innerHTML = `<i class="fa-solid fa-children text-gold-600"></i> Daftar Putra/Putri (Generasi 4 / Cicit)`;
+                document.getElementById('children-add-heading').textContent = `Tambah Anak (Generasi 4):`;
+                document.getElementById('new-gen3-order').classList.add('hidden');
                 renderGen4ListInModal(child);
             } else if (level === 'gen4') {
                 const branch = familyData.branches.find(b => b.id === branchId);
@@ -1907,6 +1976,26 @@
                 lineageInfo.innerHTML = `
                     <p><strong>Orang Tua:</strong> ${escapeHTML(child.name)} &amp; ${escapeHTML(child.spouse || 'Pasangan')}</p>
                     <p><strong>Cabang:</strong> ${escapeHTML(branch.name)}</p>
+                `;
+                tabChildrenBtn.classList.remove('hidden');
+                document.getElementById('tab-btn-children-label').textContent = `Keturunan (Gen 5)`;
+                document.getElementById('children-tab-heading').innerHTML = `<i class="fa-solid fa-children text-gold-600"></i> Daftar Putra/Putri (Generasi 5 / Piut)`;
+                document.getElementById('children-add-heading').textContent = `Tambah Anak (Generasi 5):`;
+                document.getElementById('new-gen3-order').classList.add('hidden');
+                renderGen5ListInModal(g4);
+                btnDelete.classList.remove('hidden');
+            } else if (level === 'gen5') {
+                const branch = familyData.branches.find(b => b.id === branchId);
+                const child = branch?.children.find(c => c.id === childId);
+                const g4 = child?.children?.find(g => g.id === gen4Id);
+                const g5 = g4?.children?.find(g => g.id === gen5Id);
+                if (!branch || !child || !g4 || !g5) return;
+                targetMember = g5;
+                genBadge.textContent = `Generasi 5 • Piut`;
+                title.textContent = `Edit Profil: ${g5.name}`;
+                lineageInfo.innerHTML = `
+                    <p><strong>Orang Tua (Gen 4):</strong> ${escapeHTML(g4.name)} &amp; ${escapeHTML(g4.spouse || 'Pasangan')}</p>
+                    <p><strong>Kakek/Nenek (Gen 3):</strong> ${escapeHTML(child.name)} &amp; ${escapeHTML(branch.name)}</p>
                 `;
                 btnDelete.classList.remove('hidden');
             }
@@ -1942,6 +2031,71 @@
             document.getElementById('detail-modal').classList.add('hidden');
         }
 
+        function renderGen3ListInModal(branch) {
+            const listContainer = document.getElementById('gen4-list');
+            const gen3 = branch.children || [];
+            if (gen3.length === 0) {
+                listContainer.innerHTML = `<p class="text-xs text-gray-500 italic py-2">Belum ada data Generasi 3 (cucu) yang tercatat.</p>`;
+                return;
+            }
+            listContainer.innerHTML = gen3.map((item, idx) => `
+                <div class="flex items-center justify-between bg-cream-50 border border-cream-300 px-3 py-2 rounded-xl text-xs gap-2">
+                    <div class="flex items-center gap-2 min-w-0">
+                        ${renderAvatarHTML(item, 'w-7 h-7 text-[10px]', 'rounded-lg')}
+                        <div class="truncate">
+                            <span class="font-bold text-gray-900">${item.order}. ${escapeHTML(item.name)}</span>
+                            ${item.spouse ? `<span class="text-gray-500 ml-1">(&amp; ${escapeHTML(item.spouse)})</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1 shrink-0">
+                        <button type="button" onclick="moveGen3Order('${branch.id}', ${idx}, -1)" ${idx === 0 ? 'disabled' : ''} class="px-1.5 py-1 rounded bg-white border border-cream-300 text-gray-700 hover:bg-cream-200 disabled:opacity-30" title="Geser Naik">
+                            <i class="fa-solid fa-arrow-up"></i>
+                        </button>
+                        <button type="button" onclick="moveGen3Order('${branch.id}', ${idx}, 1)" ${idx === gen3.length - 1 ? 'disabled' : ''} class="px-1.5 py-1 rounded bg-white border border-cream-300 text-gray-700 hover:bg-cream-200 disabled:opacity-30" title="Geser Turun">
+                            <i class="fa-solid fa-arrow-down"></i>
+                        </button>
+                        <button type="button" onclick="openEditModal('gen3', '${branch.id}', '${item.id}')" class="text-emerald-800 hover:bg-emerald-100 px-2 py-1 rounded-lg font-semibold" title="Edit Profil & CV">
+                            <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button type="button" onclick="removeGen3Inline('${branch.id}', ${idx})" class="text-red-600 hover:bg-red-100 px-2 py-1 rounded-lg" title="Hapus">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function moveGen3Order(branchId, index, direction) {
+            const branch = familyData.branches.find(b => b.id === branchId);
+            if (!branch) return;
+            const targetIdx = index + direction;
+            if (targetIdx < 0 || targetIdx >= branch.children.length) return;
+
+            const temp = branch.children[index];
+            branch.children[index] = branch.children[targetIdx];
+            branch.children[targetIdx] = temp;
+
+            branch.children.forEach((c, i) => { c.order = i + 1; });
+            await saveFamilyData();
+            renderGen3ListInModal(branch);
+            renderApp();
+            showToast('Urutan anak Generasi 3 diperbarui');
+        }
+
+        async function removeGen3Inline(branchId, index) {
+            const branch = familyData.branches.find(b => b.id === branchId);
+            if (!branch) return;
+            const removed = branch.children[index];
+            if (!confirm(`Hapus "${removed.name}" dari daftar anak ${branch.name}?`)) return;
+
+            branch.children.splice(index, 1);
+            branch.children.forEach((c, i) => { c.order = i + 1; });
+            await saveFamilyData();
+            renderGen3ListInModal(branch);
+            renderApp();
+            showToast(`"${removed.name}" dihapus dari Generasi 3`, 'info');
+        }
+
         function renderGen4ListInModal(child) {
             const listContainer = document.getElementById('gen4-list');
             const gen4 = child.children || [];
@@ -1970,36 +2124,145 @@
             `).join('');
         }
 
-        async function addGen4Inline() {
+        async function addChildInline() {
+            const level = document.getElementById('edit-level').value;
             const branchId = document.getElementById('edit-branch-id').value;
             const childId = document.getElementById('edit-child-id').value;
+            const gen4Id = document.getElementById('edit-gen4-id').value;
             const nameInput = document.getElementById('new-gen4-name');
             const spouseInput = document.getElementById('new-gen4-spouse');
+            const orderInput = document.getElementById('new-gen3-order');
+
             const nameVal = nameInput.value.trim();
             const spouseVal = spouseInput.value.trim();
             if (!nameVal) return;
 
+            if (level === 'gen2') {
+                const branch = familyData.branches.find(b => b.id === branchId);
+                if (!branch) return;
+                if (!branch.children) branch.children = [];
+
+                const newChild = {
+                    id: `${branch.id}-c${Date.now()}`,
+                    order: branch.children.length + 1,
+                    name: nameVal,
+                    spouse: spouseVal,
+                    status: 'hidup',
+                    photo: '',
+                    notes: '',
+                    cv: {},
+                    children: []
+                };
+
+                const desiredOrder = parseInt(orderInput.value, 10);
+                if (!isNaN(desiredOrder) && desiredOrder >= 1 && desiredOrder <= branch.children.length) {
+                    branch.children.splice(desiredOrder - 1, 0, newChild);
+                } else {
+                    branch.children.push(newChild);
+                }
+
+                branch.children.forEach((c, i) => { c.order = i + 1; });
+                orderInput.value = branch.children.length + 1;
+
+                nameInput.value = '';
+                spouseInput.value = '';
+                await saveFamilyData();
+                renderGen3ListInModal(branch);
+                renderApp();
+                showToast(`"${nameVal}" ditambahkan ke Generasi 3 & tersimpan ke Supabase`);
+            } else if (level === 'gen3') {
+                const branch = familyData.branches.find(b => b.id === branchId);
+                const child = branch?.children.find(c => c.id === childId);
+                if (!child) return;
+
+                if (!child.children) child.children = [];
+                child.children.push({
+                    id: 'g4-' + Date.now(),
+                    name: nameVal,
+                    spouse: spouseVal,
+                    status: 'hidup',
+                    photo: '',
+                    notes: '',
+                    cv: {},
+                    children: []
+                });
+
+                nameInput.value = '';
+                spouseInput.value = '';
+                await saveFamilyData();
+                renderGen4ListInModal(child);
+                renderApp();
+                showToast(`"${nameVal}" ditambahkan ke Generasi 4`);
+            } else if (level === 'gen4') {
+                const branch = familyData.branches.find(b => b.id === branchId);
+                const child = branch?.children.find(c => c.id === childId);
+                const g4 = child?.children?.find(g => g.id === gen4Id);
+                if (!g4) return;
+
+                if (!g4.children) g4.children = [];
+                g4.children.push({
+                    id: 'g5-' + Date.now(),
+                    name: nameVal,
+                    spouse: spouseVal,
+                    status: 'hidup',
+                    photo: '',
+                    notes: '',
+                    cv: {}
+                });
+
+                nameInput.value = '';
+                spouseInput.value = '';
+                await saveFamilyData();
+                renderGen5ListInModal(g4);
+                renderApp();
+                showToast(`"${nameVal}" ditambahkan ke Generasi 5 (Piut)`);
+            }
+        }
+
+        function renderGen5ListInModal(g4) {
+            const listContainer = document.getElementById('gen4-list');
+            const gen5 = g4.children || [];
+            if (gen5.length === 0) {
+                listContainer.innerHTML = `<p class="text-xs text-gray-500 italic py-2">Belum ada data Generasi 5 (piut) yang tercatat.</p>`;
+                return;
+            }
+            const branchId = document.getElementById('edit-branch-id').value;
+            const childId = document.getElementById('edit-child-id').value;
+            listContainer.innerHTML = gen5.map((item, idx) => `
+                <div class="flex items-center justify-between bg-cream-50 border border-cream-300 px-3 py-2 rounded-xl text-xs">
+                    <div class="flex items-center gap-2">
+                        ${renderAvatarHTML(item, 'w-7 h-7 text-[10px]', 'rounded-lg')}
+                        <div>
+                            <span class="font-bold text-gray-900">${idx + 1}. ${escapeHTML(item.name)}</span>
+                            ${item.spouse ? `<span class="text-gray-500 ml-1">(&amp; ${escapeHTML(item.spouse)})</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button type="button" onclick="openEditModal('gen5', '${branchId}', '${childId}', '${g4.id}', '${item.id}')" class="text-emerald-800 hover:bg-emerald-100 px-2 py-1 rounded-lg font-semibold" title="Edit Foto & CV Piut">
+                            <i class="fa-solid fa-pen"></i> Edit CV
+                        </button>
+                        <button type="button" onclick="removeGen5Inline(${idx})" class="text-red-600 hover:bg-red-100 px-2 py-1 rounded-lg" title="Hapus">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function removeGen5Inline(index) {
+            const branchId = document.getElementById('edit-branch-id').value;
+            const childId = document.getElementById('edit-child-id').value;
+            const gen4Id = document.getElementById('edit-gen4-id').value;
             const branch = familyData.branches.find(b => b.id === branchId);
             const child = branch?.children.find(c => c.id === childId);
-            if (!child) return;
+            const g4 = child?.children?.find(g => g.id === gen4Id);
+            if (!g4 || !g4.children) return;
 
-            if (!child.children) child.children = [];
-            child.children.push({
-                id: 'g4-' + Date.now(),
-                name: nameVal,
-                spouse: spouseVal,
-                status: 'hidup',
-                photo: '',
-                notes: '',
-                cv: {}
-            });
-
-            nameInput.value = '';
-            spouseInput.value = '';
+            g4.children.splice(index, 1);
             await saveFamilyData();
-            renderGen4ListInModal(child);
+            renderGen5ListInModal(g4);
             renderApp();
-            showToast(`"${nameVal}" ditambahkan ke Generasi 4`);
+            showToast('Data Generasi 5 dihapus', 'info');
         }
 
         async function removeGen4Inline(index) {
@@ -2018,20 +2281,30 @@
 
         async function deleteCurrentMember() {
             const level = document.getElementById('edit-level').value;
-            if (level !== 'gen4') return;
             const branchId = document.getElementById('edit-branch-id').value;
             const childId = document.getElementById('edit-child-id').value;
             const gen4Id = document.getElementById('edit-gen4-id').value;
+            const gen5Id = document.getElementById('edit-gen5-id').value;
 
             const branch = familyData.branches.find(b => b.id === branchId);
             const child = branch?.children.find(c => c.id === childId);
             if (!child || !child.children) return;
 
-            child.children = child.children.filter(g => g.id !== gen4Id);
-            await saveFamilyData();
-            closeDetailModal();
-            renderApp();
-            showToast('Anggota Generasi 4 dihapus dari database', 'info');
+            if (level === 'gen4') {
+                child.children = child.children.filter(g => g.id !== gen4Id);
+                await saveFamilyData();
+                closeDetailModal();
+                renderApp();
+                showToast('Anggota Generasi 4 dihapus dari database', 'info');
+            } else if (level === 'gen5') {
+                const g4 = child.children.find(g => g.id === gen4Id);
+                if (!g4 || !g4.children) return;
+                g4.children = g4.children.filter(g => g.id !== gen5Id);
+                await saveFamilyData();
+                closeDetailModal();
+                renderApp();
+                showToast('Anggota Generasi 5 dihapus dari database', 'info');
+            }
         }
 
         async function saveMemberChanges(e) {
@@ -2040,6 +2313,7 @@
             const branchId = document.getElementById('edit-branch-id').value;
             const childId = document.getElementById('edit-child-id').value;
             const gen4Id = document.getElementById('edit-gen4-id').value;
+            const gen5Id = document.getElementById('edit-gen5-id').value;
 
             const newName = document.getElementById('edit-name').value.trim();
             if (!newName) return;
@@ -2077,6 +2351,12 @@
                 const child = branch?.children.find(c => c.id === childId);
                 const g4 = child?.children?.find(g => g.id === gen4Id);
                 if (g4) Object.assign(g4, updatedFields);
+            } else if (level === 'gen5') {
+                const branch = familyData.branches.find(b => b.id === branchId);
+                const child = branch?.children.find(c => c.id === childId);
+                const g4 = child?.children?.find(g => g.id === gen4Id);
+                const g5 = g4?.children?.find(g => g.id === gen5Id);
+                if (g5) Object.assign(g5, updatedFields);
             }
 
             await saveFamilyData();
@@ -2358,8 +2638,11 @@
             handlePhotoUpload,
             handlePhotoUrlInput,
             removeMemberPhoto,
-            addGen4Inline,
+            addChildInline,
+            moveGen3Order,
+            removeGen3Inline,
             removeGen4Inline,
+            removeGen5Inline,
             deleteCurrentMember,
             saveMemberChanges
         });
