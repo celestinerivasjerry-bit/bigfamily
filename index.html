@@ -4,13 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Silsilah Keluarga Besar Bani H. Ma'shum & Nyai Masrobatun</title>
-    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
-    <!-- Google Fonts: Plus Jakarta Sans & Amiri untuk sentuhan elegan tradisional -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Amiri:ital,wght@0,400;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-    <!-- Font Awesome untuk Ikon yang Jelas -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <script>
@@ -59,7 +56,6 @@
             font-feature-settings: "cv02", "cv03", "cv04", "cv11";
         }
 
-        /* Pola Latar Belakang Geometris Halus */
         .bg-islamic-pattern {
             background-color: #043927;
             background-image: radial-gradient(rgba(212, 175, 55, 0.14) 1px, transparent 1px), radial-gradient(rgba(212, 175, 55, 0.1) 1px, #043927 1px);
@@ -67,7 +63,6 @@
             background-position: 0 0, 18px 18px;
         }
 
-        /* Styling Garis Penghubung Pohon Silsilah (Tree Diagram) */
         .tree-scroll-container {
             cursor: grab;
             user-select: none;
@@ -76,7 +71,6 @@
             cursor: grabbing;
         }
 
-        /* Custom Scrollbar yang Rapi */
         ::-webkit-scrollbar {
             width: 8px;
             height: 8px;
@@ -93,7 +87,6 @@
             background: #4A6B58;
         }
 
-        /* Pengaturan Khusus Mode Cetak (Print / PDF) */
         @media print {
             body {
                 background: white !important;
@@ -119,7 +112,6 @@
                 box-shadow: none !important;
                 border: 1px solid #d1d5db !important;
             }
-            /* Jika sedang mencetak CV Anggota */
             body.printing-cv #main-header,
             body.printing-cv #filter-nav,
             body.printing-cv #main-content,
@@ -141,7 +133,6 @@
                 margin: 0 !important;
                 padding: 0 !important;
             }
-            /* Jika mencetak halaman utama silsilah */
             body:not(.printing-cv) #cards-view-container {
                 display: grid !important;
                 grid-template-columns: repeat(2, 1fr) !important;
@@ -155,13 +146,10 @@
 </head>
 <body class="antialiased min-h-screen flex flex-col">
 
-    <!-- Notifikasi Toast (Pengganti alert) -->
     <div id="toast-container" class="fixed bottom-5 right-5 z-[70] flex flex-col gap-2 pointer-events-none no-print"></div>
 
-    <!-- Input File Tersembunyi untuk Impor JSON -->
     <input type="file" id="import-json-input" accept=".json,application/json" class="hidden" onchange="handleImportJSON(event)">
 
-    <!-- HEADER & IDENTITAS KELUARGA -->
     <header id="main-header" class="bg-islamic-pattern text-cream-50 border-b-4 border-gold-500 shadow-lg relative overflow-hidden">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 sm:py-10 relative z-10">
             <div class="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
@@ -171,7 +159,6 @@
                             <i class="fa-solid fa-sitemap"></i>
                             <span>Buku Induk, Foto &amp; CV Keluarga</span>
                         </div>
-                        <!-- Indikator Status Sinkronisasi Database -->
                         <div id="db-sync-badge" class="inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-950/90 border border-emerald-600/60 text-emerald-300 text-xs font-medium">
                             <span id="db-sync-dot" class="w-2 h-2 rounded-full bg-amber-400 animate-pulse"></span>
                             <span id="db-sync-text">Menghubungkan Database...</span>
@@ -186,7 +173,6 @@
                     </p>
                 </div>
 
-                <!-- Tombol Aksi Cepat di Header -->
                 <div class="flex flex-wrap items-center justify-center lg:justify-end gap-2 no-print">
                     <button onclick="openAddGen4Modal()" class="inline-flex items-center gap-2 px-4 py-2.5 rounded-xl bg-gold-500 hover:bg-gold-600 text-emerald-950 font-bold text-sm shadow-md transition-all active:scale-95">
                         <i class="fa-solid fa-user-plus"></i>
@@ -211,19 +197,15 @@
                 </div>
             </div>
 
-            <!-- RINGKASAN STATISTIK KELUARGA OTOMATIS -->
             <div id="stats-grid" class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3 sm:gap-4 mt-7">
-                <!-- Diisi otomatis oleh JavaScript -->
             </div>
         </div>
     </header>
 
-    <!-- KONTROL PENCARIAN, FILTER & MODE TAMPILAN -->
     <section id="filter-nav" class="sticky top-0 z-30 bg-cream-50/95 backdrop-blur-md border-b border-cream-300 shadow-sm no-print">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-3.5">
             <div class="flex flex-col lg:flex-row gap-3 items-stretch lg:items-center justify-between">
                 
-                <!-- Kolom Pencarian -->
                 <div class="relative flex-1 min-w-[240px]">
                     <div class="absolute inset-y-0 left-0 pl-3.5 flex items-center pointer-events-none text-sage-600">
                         <i class="fa-solid fa-magnifying-glass"></i>
@@ -235,7 +217,6 @@
                     </button>
                 </div>
 
-                <!-- Filter Cabang & Status Pasangan -->
                 <div class="flex flex-wrap sm:flex-nowrap items-center gap-2.5">
                     <div class="relative flex-1 sm:flex-initial">
                         <select id="branch-filter" class="w-full sm:w-52 appearance-none bg-white border border-cream-300 rounded-xl pl-3.5 pr-9 py-2.5 text-sm font-medium text-gray-700 focus:outline-none focus:ring-2 focus:ring-emerald-700 cursor-pointer">
@@ -258,7 +239,6 @@
                         </div>
                     </div>
 
-                    <!-- Switcher Mode Tampilan -->
                     <div class="inline-flex rounded-xl bg-cream-200 p-1 border border-cream-300 w-full sm:w-auto justify-center">
                         <button id="btn-mode-cards" onclick="switchViewMode('cards')" class="flex-1 sm:flex-initial inline-flex items-center justify-center gap-2 px-3.5 py-1.5 rounded-lg text-sm font-bold transition-all bg-emerald-900 text-white shadow-sm">
                             <i class="fa-solid fa-table-cells-large"></i>
@@ -272,7 +252,6 @@
                 </div>
             </div>
 
-            <!-- Bar Info Filter Aktif -->
             <div id="filter-status-bar" class="hidden mt-2.5 pt-2 border-t border-cream-200 flex items-center justify-between text-xs sm:text-sm text-sage-700">
                 <span id="filter-status-text">Menampilkan hasil pencarian...</span>
                 <button onclick="resetAllFilters()" class="text-emerald-800 hover:underline font-semibold">Reset Filter</button>
@@ -280,10 +259,8 @@
         </div>
     </section>
 
-    <!-- KONTEN UTAMA -->
     <main id="main-content" class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6 sm:py-8">
 
-        <!-- KARTU INDUK LELUHUR (GENERASI 1) -->
         <div class="mb-8 bg-white rounded-2xl border-2 border-gold-400/70 shadow-md overflow-hidden print-break-inside-avoid">
             <div class="bg-gradient-to-r from-emerald-900 via-emerald-850 to-emerald-900 px-5 py-3 flex flex-wrap items-center justify-between gap-2 text-cream-100">
                 <span class="text-xs font-bold uppercase tracking-widest text-gold-400 flex items-center gap-2">
@@ -300,7 +277,6 @@
             </div>
             <div class="p-5 sm:p-6 flex flex-col sm:flex-row items-center justify-between gap-4 bg-gradient-to-b from-cream-50 to-white">
                 <div class="flex flex-col sm:flex-row items-center gap-4 text-center sm:text-left">
-                    <!-- Avatar Foto Leluhur -->
                     <div id="root-avatar-container" onclick="openCVModal('gen1', 'root')" class="cursor-pointer w-20 h-20 rounded-2xl bg-emerald-900 text-gold-400 flex items-center justify-center text-3xl font-serif font-bold shadow-md border-2 border-gold-400/70 shrink-0 overflow-hidden hover:scale-105 transition-transform">
                         <i class="fa-solid fa-people-roof"></i>
                     </div>
@@ -325,15 +301,11 @@
             </div>
         </div>
 
-        <!-- MODE 1: TAMPILAN KARTU & DAFTAR CABANG (ACCORDION / GRID) -->
         <div id="cards-view-container" class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-            <!-- Kartu Cabang Generasi 2 & Daftar Anak Generasi 3 dirender di sini -->
         </div>
 
-        <!-- MODE 2: TAMPILAN POHON VISUAL / DIAGRAM HIERARKI -->
         <div id="tree-view-container" class="hidden">
             <div class="bg-white rounded-2xl border border-cream-300 shadow-md overflow-hidden">
-                <!-- Toolbar Pohon Visual -->
                 <div class="bg-cream-100 px-4 py-3 border-b border-cream-300 flex flex-wrap items-center justify-between gap-3">
                     <div class="flex items-center gap-2 text-sm text-sage-700 font-medium">
                         <i class="fa-solid fa-circle-info text-emerald-800"></i>
@@ -353,16 +325,13 @@
                     </div>
                 </div>
 
-                <!-- Kanvas Pohon Interaktif -->
                 <div id="tree-scroll-wrapper" class="tree-scroll-container overflow-x-auto overflow-y-auto p-6 sm:p-10 bg-cream-50/60 min-h-[540px] max-h-[78vh]">
                     <div id="tree-canvas" class="origin-top-left transition-transform duration-200 inline-block min-w-full">
-                        <!-- Hierarki Pohon Silsilah dirender di sini -->
                     </div>
                 </div>
             </div>
         </div>
 
-        <!-- PESAN JIKA PENCARIAN TIDAK DITEMUKAN -->
         <div id="empty-state" class="hidden text-center py-16 px-4 bg-white rounded-2xl border border-cream-300 shadow-sm">
             <div class="w-16 h-16 rounded-full bg-cream-200 text-sage-600 flex items-center justify-center text-2xl mx-auto mb-4">
                 <i class="fa-solid fa-magnifying-glass"></i>
@@ -378,7 +347,6 @@
 
     </main>
 
-    <!-- FOOTER -->
     <footer id="main-footer" class="bg-emerald-950 text-cream-200 border-t border-emerald-800 mt-12 py-6 no-print">
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col sm:flex-row items-center justify-between gap-4 text-xs sm:text-sm">
             <div class="flex items-center gap-2">
@@ -391,16 +359,12 @@
         </div>
     </footer>
 
-    <!-- ===================================================================== -->
-    <!-- MODAL 1: TAMPILAN CV / BIOGRAFI LENGKAP ANGGOTA (ELEGAN & SIAP CETAK)  -->
-    <!-- ===================================================================== -->
     <div id="cv-view-modal" class="fixed inset-0 z-50 hidden overflow-y-auto" role="dialog" aria-modal="true">
         <div class="flex items-end sm:items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div id="cv-modal-backdrop" onclick="closeCVModal()" class="fixed inset-0 bg-emerald-950/75 backdrop-blur-xs transition-opacity no-print"></div>
             <span class="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
 
             <div id="cv-modal-card" class="relative inline-block align-bottom bg-white rounded-2xl text-left overflow-hidden shadow-2xl transform transition-all sm:my-8 sm:align-middle sm:max-w-3xl w-full border border-cream-300">
-                <!-- Toolbar Atas Modal CV (Sembunyi saat print) -->
                 <div class="bg-emerald-950 px-6 py-3 flex items-center justify-between text-cream-100 border-b border-gold-500/40 no-print">
                     <span class="text-xs font-bold uppercase tracking-wider text-gold-400 flex items-center gap-2">
                         <i class="fa-solid fa-address-card"></i> Curriculum Vitae &amp; Biografi Keluarga
@@ -418,17 +382,12 @@
                     </div>
                 </div>
 
-                <!-- Konten Dokumen CV -->
                 <div id="cv-document-content" class="bg-white">
-                    <!-- Dirender dinamis oleh JS -->
                 </div>
             </div>
         </div>
     </div>
 
-    <!-- ===================================================================== -->
-    <!-- MODAL 2: EDITOR ANGGOTA, UNGGAH FOTO & FORM DATA CV                   -->
-    <!-- ===================================================================== -->
     <div id="detail-modal" class="fixed inset-0 z-50 hidden overflow-y-auto no-print" aria-labelledby="modal-title" role="dialog" aria-modal="true">
         <div class="flex items-end sm:items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div onclick="closeDetailModal()" class="fixed inset-0 bg-emerald-950/75 backdrop-blur-xs transition-opacity"></div>
@@ -445,7 +404,6 @@
                     </button>
                 </div>
 
-                <!-- Tab Navigasi Form Edit -->
                 <div class="flex border-b border-cream-300 bg-cream-100 px-6 pt-2 gap-2">
                     <button type="button" id="tab-btn-basic" onclick="switchEditTab('basic')" class="px-4 py-2.5 text-xs sm:text-sm font-bold rounded-t-xl bg-white text-emerald-950 border-t border-x border-cream-300 -mb-px flex items-center gap-1.5">
                         <i class="fa-solid fa-user-pen text-emerald-700"></i> Identitas &amp; Foto
@@ -466,13 +424,10 @@
                     <input type="hidden" id="edit-gen5-id">
                     <input type="hidden" id="edit-gen6-id">
 
-                    <!-- TAB 1: IDENTITAS DASAR & FOTO PROFIL -->
                     <div id="edit-tab-basic" class="space-y-4">
                         <div id="modal-lineage-info" class="p-3 rounded-xl bg-cream-100 border border-cream-300 text-xs sm:text-sm text-sage-700 space-y-1">
-                            <!-- Diisi dinamis -->
                         </div>
 
-                        <!-- Pengaturan Foto Profil -->
                         <div class="p-4 rounded-xl bg-sage-50 border border-sage-200 flex flex-col sm:flex-row items-center gap-4">
                             <div id="edit-photo-preview" class="w-24 h-24 rounded-2xl bg-emerald-900 text-gold-400 flex items-center justify-center text-3xl font-bold border-2 border-gold-400 shadow-sm overflow-hidden shrink-0">
                                 <i class="fa-solid fa-user"></i>
@@ -523,7 +478,6 @@
                         </div>
                     </div>
 
-                    <!-- TAB 2: BIODATA & CV LENGKAP -->
                     <div id="edit-tab-cv" class="hidden space-y-4">
                         <div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
@@ -574,7 +528,6 @@
                         </div>
                     </div>
 
-                    <!-- TAB 3: DAFTAR KETURUNAN (GEN 3 UNTUK CABANG GEN 2, ATAU GEN 4 UNTUK GEN 3) -->
                     <div id="edit-tab-children" class="hidden space-y-4">
                         <div class="flex items-center justify-between">
                             <label id="children-tab-heading" class="text-sm font-bold text-emerald-950 flex items-center gap-1.5">
@@ -582,7 +535,6 @@
                             </label>
                         </div>
                         <div id="gen4-list" class="space-y-2 max-h-60 overflow-y-auto pr-1">
-                            <!-- List keturunan -->
                         </div>
                         <div class="p-3 rounded-xl bg-cream-100 border border-cream-300 space-y-2">
                             <p id="children-add-heading" class="text-xs font-bold text-sage-700">Tambah Anak:</p>
@@ -597,7 +549,6 @@
                         </div>
                     </div>
 
-                    <!-- Footer Tombol Simpan -->
                     <div class="pt-5 mt-5 border-t border-gray-200 flex items-center justify-between gap-3">
                         <button type="button" id="btn-delete-member" onclick="deleteCurrentMember()" class="hidden px-3.5 py-2.5 rounded-xl bg-red-50 hover:bg-red-100 text-red-700 text-xs sm:text-sm font-bold transition-colors">
                             <i class="fa-solid fa-trash-can mr-1"></i> Hapus Anggota
@@ -617,9 +568,6 @@
         </div>
     </div>
 
-    <!-- ===================================================================== -->
-    <!-- MODAL 3: TAMBAH CICIT (GENERASI 4) CEPAT                              -->
-    <!-- ===================================================================== -->
     <div id="add-gen4-modal" class="fixed inset-0 z-50 hidden overflow-y-auto no-print" role="dialog" aria-modal="true">
         <div class="flex items-end sm:items-center justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
             <div onclick="closeAddGen4Modal()" class="fixed inset-0 bg-emerald-950/75 backdrop-blur-xs transition-opacity"></div>
@@ -667,9 +615,6 @@
         </div>
     </div>
 
-    <!-- ===================================================================== -->
-    <!-- MODAL 4: KONFIRMASI RESET DATA                                        -->
-    <!-- ===================================================================== -->
     <div id="reset-modal" class="fixed inset-0 z-50 hidden overflow-y-auto no-print" role="dialog" aria-modal="true">
         <div class="flex items-center justify-center min-h-screen px-4 text-center">
             <div onclick="closeResetModal()" class="fixed inset-0 bg-emerald-950/75 backdrop-blur-xs"></div>
@@ -689,10 +634,6 @@
         </div>
     </div>
 
-
-    <!-- ===================================================================== -->
-    <!-- MODAL 5: VERIFIKASI PIN PENGAMAN EDIT KELUARGA                        -->
-    <!-- ===================================================================== -->
     <div id="pin-modal" class="fixed inset-0 z-[60] hidden overflow-y-auto no-print" role="dialog" aria-modal="true">
         <div class="flex items-center justify-center min-h-screen px-4 text-center">
             <div onclick="closePinModal()" class="fixed inset-0 bg-emerald-950/80 backdrop-blur-xs"></div>
@@ -721,15 +662,9 @@
         </div>
     </div>
 
-    <!-- ===================================================================== -->
-    <!-- SCRIPT UTAMA & INTEGRASI DATABASE REAL-TIME                           -->
-    <!-- ===================================================================== -->
     <script type="module">
         import { createClient } from "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm";
 
-        // =========================================================================
-        // 1. DATA INDUK SILSILAH BANI H. MA'SHUM & NYAI MASROBATUN (AKURAT)
-        // =========================================================================
         const IDB_NAME = 'SilsilahBaniMashumDB';
         const IDB_STORE = 'familyStore';
         const IDB_KEY = 'mainTree';
@@ -848,18 +783,14 @@
             ]
         };
 
-        // State Aplikasi
         let familyData = JSON.parse(JSON.stringify(INITIAL_FAMILY_DATA));
         let currentViewMode = 'cards';
         let searchQuery = '';
         let selectedBranchFilter = 'all';
         let selectedSpouseFilter = 'all';
         let treeZoomLevel = 1.0;
-        let currentEditPhotoData = ''; // Menyimpan data foto saat modal edit terbuka
+        let currentEditPhotoData = ''; 
 
-        // =========================================================================
-        // KONFIGURASI SUPABASE
-        // =========================================================================
         const SUPABASE_URL = "https://sftovepfclcfakiuewrf.supabase.co";
         const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InNmdG92ZXBmY2xjZmFraXVld3JmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTUxMDA5NTYsImV4cCI6MjExMDY3Njk1Nn0.1PGTZb1l9ugnJJAlcjCuRz-rrWAqbtLEeuCubABItXk";
         const RECORD_ID = "master_tree";
@@ -867,9 +798,6 @@
         let supabase = null;
         let isSupabaseConnected = false;
 
-        // =========================================================================
-        // 2. INDEXEDDB FALLBACK & DATABASE REAL-TIME SUPABASE
-        // =========================================================================
         function updateSyncBadge(status, text) {
             const dot = document.getElementById('db-sync-dot');
             const label = document.getElementById('db-sync-text');
@@ -965,10 +893,7 @@
             return raw;
         }
 
-        // =========================================================================
-        // PENGAMAN PIN KELUARGA & ANTREAN MUTASI ANTI SALING TIMPA (SMART MERGE)
-        // =========================================================================
-        const FAMILY_EDIT_PIN = "1945"; // Ubah kode PIN 4-6 digit ini sesuai kesepakatan keluarga
+        const FAMILY_EDIT_PIN = "1945"; 
         let isEditUnlocked = sessionStorage.getItem('bani_mashum_unlocked') === 'true';
         let pendingProtectedAction = null;
 
@@ -1034,13 +959,11 @@
             }
         }
 
-        // Antrean Mutasi Atomik: menyimpan daftar perubahan spesifik (bukan menimpa seluruh JSON)
         let pendingMutations = [];
         let saveDebounceTimer = null;
         let lastLocalSaveTimestamp = 0;
         let isSavingToCloud = false;
 
-        // Fungsi murni untuk menerapkan 1 mutasi ke objek silsilah target (lokal maupun dari server)
         function applySingleMutation(targetData, mut) {
             if (!targetData || !mut) return;
             const { type } = mut;
@@ -1157,7 +1080,6 @@
                         map.delete(id);
                     }
                 });
-                // Sisipkan anak baru jika ada yang ditambahkan orang lain saat proses geser
                 map.forEach(remaining => reordered.push(remaining));
                 reordered.forEach((c, i) => { c.order = i + 1; });
                 b.children = reordered;
@@ -1165,11 +1087,9 @@
         }
 
         function commitMutation(mutation) {
-            // 1. Terapkan langsung ke tampilan lokal agar instan
             applySingleMutation(familyData, mutation);
             saveToIndexedDB(familyData);
 
-            // 2. Masukkan ke antrean sinkronisasi cloud
             pendingMutations.push(mutation);
 
             if (isSupabaseConnected && supabase) {
@@ -1187,11 +1107,9 @@
             if (!isSupabaseConnected || !supabase || isSavingToCloud || pendingMutations.length === 0) return;
             isSavingToCloud = true;
 
-            // Ambil batch mutasi saat ini
             const batch = pendingMutations.splice(0, pendingMutations.length);
 
             try {
-                // LANGKAH 1: Tarik (Fetch) versi paling baru dari Supabase detik ini juga
                 const { data: latestRow, error: fetchErr } = await supabase
                     .from('silsilah_keluarga')
                     .select('payload')
@@ -1200,15 +1118,12 @@
 
                 if (fetchErr) throw fetchErr;
 
-                // Gunakan data terbaru server sebagai basis penggabungan (merge)
                 let mergedPayload = latestRow && latestRow.payload
                     ? normalizeFamilyData(latestRow.payload)
                     : normalizeFamilyData(JSON.parse(JSON.stringify(familyData)));
 
-                // LANGKAH 2: Terapkan (Merge) perubahan spesifik kita di atas data terbaru server
                 batch.forEach(mut => applySingleMutation(mergedPayload, mut));
 
-                // LANGKAH 3: Simpan hasil penggabungan kembali ke Supabase
                 const nowIso = new Date().toISOString();
                 lastLocalSaveTimestamp = Date.now();
                 const { error: upsertErr } = await supabase
@@ -1221,19 +1136,16 @@
 
                 if (upsertErr) throw upsertErr;
 
-                // Perbarui state lokal dengan hasil gabungan terbaru (termasuk editan orang lain)
                 familyData = mergedPayload;
                 saveToIndexedDB(familyData);
                 renderApp();
                 updateSyncBadge('online', 'Tersinkron Aman (Smart Merge)');
             } catch (err) {
                 console.error("Gagal sinkronisasi Smart Merge ke Supabase:", err);
-                // Kembalikan batch ke depan antrean jika gagal jaringan
                 pendingMutations.unshift(...batch);
                 updateSyncBadge('offline', 'Tersimpan Lokal (Menunggu Koneksi)');
             } finally {
                 isSavingToCloud = false;
-                // Jika ada mutasi baru yang masuk selama proses simpan tadi, jalankan lagi
                 if (pendingMutations.length > 0) {
                     setTimeout(() => flushSaveToSupabase(), 250);
                 }
@@ -1241,7 +1153,6 @@
         }
 
         async function initDatabaseConnection() {
-            // Muat data awal dari IndexedDB agar instan tampil
             const cachedLocal = await loadFromIndexedDB();
             if (cachedLocal) {
                 familyData = normalizeFamilyData(cachedLocal);
@@ -1251,7 +1162,6 @@
             try {
                 supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
-                // Ambil data awal dari tabel silsilah_keluarga
                 const { data, error } = await supabase
                     .from('silsilah_keluarga')
                     .select('payload')
@@ -1266,7 +1176,6 @@
                     await saveToIndexedDB(familyData);
                     renderApp();
                 } else {
-                    // Jika database masih kosong, unggah data awal
                     await supabase.from('silsilah_keluarga').upsert({
                         id: RECORD_ID,
                         payload: familyData,
@@ -1274,7 +1183,6 @@
                     });
                 }
 
-                // Dengarkan perubahan real-time dari anggota keluarga lain
                 supabase
                     .channel('public:silsilah_keluarga')
                     .on(
@@ -1286,11 +1194,9 @@
                             filter: `id=eq.${RECORD_ID}`
                         },
                         async (change) => {
-                            // Abaikan pantulan (echo) dari penyimpanan kita sendiri dalam 1.5 detik terakhir
                             if (Date.now() - lastLocalSaveTimestamp < 1500 && !isSavingToCloud) return;
                             if (change.new && change.new.payload) {
                                 const incoming = normalizeFamilyData(change.new.payload);
-                                // Tetap pertahankan antrean edit lokal yang sedang berjalan jika ada
                                 pendingMutations.forEach(mut => applySingleMutation(incoming, mut));
                                 familyData = incoming;
                                 saveToIndexedDB(familyData);
@@ -1310,9 +1216,6 @@
             }
         }
 
-        // =========================================================================
-        // 3. UTILITAS TAMPILAN, AVATAR FOTO & KOMPRESI GAMBAR
-        // =========================================================================
         function showToast(message, type = 'success') {
             const container = document.getElementById('toast-container');
             const toast = document.createElement('div');
@@ -1393,7 +1296,6 @@
             );
         }
 
-        // Kompresi foto otomatis ke ukuran max 360x360px JPEG agar ringan untuk database
         function compressImageFile(file, maxSize = 360, quality = 0.78) {
             return new Promise((resolve, reject) => {
                 const reader = new FileReader();
@@ -1431,9 +1333,6 @@
             });
         }
 
-        // =========================================================================
-        // 4. PERHITUNGAN STATISTIK & FILTERING
-        // =========================================================================
         function calculateStats() {
             const gen1Individuals = familyData.root.spouse ? 2 : 1;
             const gen2Count = familyData.branches.length;
@@ -1496,7 +1395,6 @@
             const stats = calculateStats();
             const statsGrid = document.getElementById('stats-grid');
 
-            // Update Kartu Leluhur Gen 1
             document.getElementById('root-couple-names').innerHTML = `${escapeHTML(familyData.root.name)} <span class="text-gold-600 font-serif italic font-normal mx-1">&amp;</span> ${escapeHTML(familyData.root.spouse)}`;
             document.getElementById('root-cucu-count').textContent = `${stats.gen3Count} Cucu`;
             const bioPreview = document.getElementById('root-bio-preview');
@@ -1634,9 +1532,6 @@
                 .filter(b => b.isVisible);
         }
 
-        // =========================================================================
-        // 5. RENDERING MODE 1: KARTU & DAFTAR CABANG (DENGAN FOTO & TOMBOL CV)
-        // =========================================================================
         function renderCardsView(filteredBranches) {
             const container = document.getElementById('cards-view-container');
             const q = searchQuery.trim();
@@ -1664,7 +1559,6 @@
                         <div class="group p-3 sm:p-3.5 rounded-xl bg-cream-50 hover:bg-sage-50 border border-cream-200 hover:border-sage-200 transition-all flex flex-col gap-2">
                             <div class="flex items-start justify-between gap-2.5">
                                 <div onclick="openCVModal('gen3', '${branch.id}', '${child.id}')" class="cursor-pointer flex items-start gap-3 min-w-0 flex-1">
-                                    <!-- Avatar Foto Cucu (Gen 3) -->
                                     <div class="relative">
                                         ${renderAvatarHTML(child, 'w-11 h-11 text-xs', 'rounded-xl')}
                                         <span class="absolute -top-1.5 -left-1.5 w-5 h-5 rounded-md bg-emerald-900 text-gold-300 font-extrabold text-[10px] flex items-center justify-center shadow-xs border border-gold-400/50">
@@ -1690,7 +1584,6 @@
                                             `}
                                         </div>
 
-                                        <!-- Ringkasan Singkat CV (Profesi / Domisili) jika ada -->
                                         ${(childCv.occupation || childCv.address) ? `
                                             <div class="flex flex-wrap items-center gap-x-3 gap-y-0.5 text-xs text-sage-700 mt-1">
                                                 ${childCv.occupation ? `<span><i class="fa-solid fa-briefcase text-gold-600 mr-1"></i>${highlightText(childCv.occupation, q)}</span>` : ''}
@@ -1702,7 +1595,6 @@
                                     </div>
                                 </div>
 
-                                <!-- Tombol Lihat CV & Edit -->
                                 <div class="no-print shrink-0 flex items-center gap-1.5">
                                     <button onclick="openCVModal('gen3', '${branch.id}', '${child.id}')" 
                                         class="px-2.5 py-1.5 rounded-lg ${hasProfile ? 'bg-gold-100 hover:bg-gold-400/30 text-emerald-950 border-gold-400/60' : 'bg-white hover:bg-cream-200 text-sage-700 border-cream-300'} border text-xs font-bold transition-all"
@@ -1718,7 +1610,6 @@
                                 </div>
                             </div>
 
-                            <!-- Sub-daftar Generasi 4 (Cicit) & Generasi 5 (Piut) jika ada -->
                             ${gen4List.length > 0 ? `
                                 <div class="ml-12 pl-3 border-l-2 border-gold-400/70 space-y-2 pt-1">
                                     <p class="text-[11px] font-bold uppercase tracking-wider text-sage-600">Keturunan / Generasi 4 (${gen4List.length}):</p>
@@ -1783,11 +1674,9 @@
 
                 return `
                     <article class="bg-white rounded-2xl border border-cream-300 shadow-sm hover:shadow-md transition-shadow overflow-hidden flex flex-col print-break-inside-avoid">
-                        <!-- Header Kartu Cabang (Generasi 2) -->
                         <div class="bg-gradient-to-r from-emerald-900 to-emerald-850 p-4 sm:p-5 text-white">
                             <div class="flex items-start justify-between gap-3">
                                 <div onclick="openCVModal('gen2', '${branch.id}')" class="cursor-pointer flex items-start gap-3.5 min-w-0 flex-1 group">
-                                    <!-- Avatar Foto Cabang (Generasi 2) -->
                                     <div class="relative shrink-0">
                                         ${branch.photo ? `
                                             <div class="w-14 h-14 rounded-2xl border-2 border-gold-400 overflow-hidden shadow-md">
@@ -1833,7 +1722,6 @@
                             </div>
                         </div>
 
-                        <!-- Daftar Keturunan (Generasi 3) -->
                         <div class="${isExpanded ? 'block' : 'hidden'} p-4 sm:p-5 space-y-2.5 flex-1 bg-white">
                             <div class="flex items-center justify-between text-xs font-bold uppercase tracking-wider text-sage-600 pb-1 border-b border-cream-200">
                                 <span>Daftar Putra / Putri (Generasi 3)</span>
@@ -1848,9 +1736,6 @@
             }).join('');
         }
 
-        // =========================================================================
-        // 6. RENDERING MODE 2: POHON VISUAL / DIAGRAM HIERARKI INTERAKTIF
-        // =========================================================================
         function renderTreeView(filteredBranches) {
             const canvas = document.getElementById('tree-canvas');
             const q = searchQuery.trim();
@@ -1908,7 +1793,6 @@
                         ` : ''}
                         <div class="w-0.5 h-6 bg-gold-500"></div>
 
-                        <!-- NODE GENERASI 2 (ANAK H. MA'SHUM) -->
                         <div class="w-64 bg-gradient-to-b from-emerald-900 to-emerald-950 text-white rounded-2xl border-2 border-gold-400/80 shadow-md p-3.5 text-center relative">
                             <div class="flex items-center justify-between text-[11px] mb-2">
                                 <span class="px-2 py-0.5 rounded-full bg-gold-500 text-emerald-950 font-extrabold">Anak ke-${branch.order}</span>
@@ -1943,7 +1827,6 @@
 
             canvas.innerHTML = `
                 <div class="flex flex-col items-center min-w-max pb-8">
-                    <!-- NODE AKAR (GENERASI 1) -->
                     <div onclick="openCVModal('gen1', 'root')" class="cursor-pointer bg-gradient-to-r from-emerald-950 via-emerald-900 to-emerald-950 text-white px-8 py-5 rounded-2xl border-2 border-gold-400 shadow-xl text-center max-w-md hover:scale-[1.01] transition-transform flex flex-col items-center">
                         ${familyData.root.photo ? `<img src="${escapeHTML(familyData.root.photo)}" class="w-16 h-16 rounded-full object-cover border-2 border-gold-400 mb-2 shadow-md">` : ''}
                         <span class="text-[11px] font-bold uppercase tracking-widest text-gold-400">Generasi 1 • Leluhur Utama</span>
@@ -1962,9 +1845,6 @@
             `;
         }
 
-        // =========================================================================
-        // 7. TAMPILAN MODAL CV / BIOGRAFI LENGKAP ANGGOTA
-        // =========================================================================
         function openCVModal(level, branchId, childId = '', gen4Id = '', gen5Id = '', gen6Id = '') {
             let member = null;
             let genLabel = '';
@@ -2069,7 +1949,6 @@
 
             const docContainer = document.getElementById('cv-document-content');
             docContainer.innerHTML = `
-                <!-- Header Profil CV -->
                 <div class="bg-islamic-pattern text-white p-6 sm:p-8 flex flex-col sm:flex-row items-center sm:items-start gap-6 border-b-4 border-gold-500">
                     <div class="shrink-0">${photoBlock}</div>
                     <div class="text-center sm:text-left flex-1 min-w-0">
@@ -2090,9 +1969,7 @@
                     </div>
                 </div>
 
-                <!-- Isi Detail CV & Biodata -->
                 <div class="p-6 sm:p-8 space-y-6 text-gray-800">
-                    <!-- Biografi / Pesan Keluarga -->
                     <div class="p-4 rounded-2xl bg-cream-50 border border-cream-300">
                         <h4 class="text-xs font-extrabold uppercase tracking-wider text-emerald-900 mb-1.5 flex items-center gap-2">
                             <i class="fa-solid fa-quote-left text-gold-600"></i> Biografi Singkat &amp; Pesan Silaturahmi
@@ -2102,9 +1979,7 @@
                         </p>
                     </div>
 
-                    <!-- Grid Informasi Pribadi & Karier -->
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        <!-- Kolom Kiri: Data Pribadi & Kontak -->
                         <div class="space-y-3.5">
                             <h4 class="text-sm font-extrabold text-emerald-950 border-b-2 border-gold-400 pb-1.5 flex items-center gap-2">
                                 <i class="fa-solid fa-user-tie text-emerald-800"></i> Data Pribadi &amp; Kontak
@@ -2129,7 +2004,6 @@
                             </div>
                         </div>
 
-                        <!-- Kolom Kanan: Pendidikan & Profesi -->
                         <div class="space-y-3.5">
                             <h4 class="text-sm font-extrabold text-emerald-950 border-b-2 border-gold-400 pb-1.5 flex items-center gap-2">
                                 <i class="fa-solid fa-graduation-cap text-emerald-800"></i> Pendidikan &amp; Kiprah
@@ -2151,7 +2025,6 @@
                         </div>
                     </div>
 
-                    <!-- Garis Nasab & Keturunan -->
                     <div class="p-4 rounded-2xl bg-sage-50 border border-sage-200 space-y-2 text-xs sm:text-sm">
                         <h4 class="font-extrabold text-emerald-950 flex items-center gap-2">
                             <i class="fa-solid fa-sitemap text-gold-600"></i> Jejak Nasab Bani H. Ma'shum &amp; Nyai Masrobatun
@@ -2165,7 +2038,6 @@
                 </div>
             `;
 
-            // Hubungkan tombol Edit di Modal CV langsung ke form Edit anggota ini
             const editBtn = document.getElementById('cv-btn-switch-edit');
             editBtn.onclick = () => {
                 closeCVModal();
@@ -2192,9 +2064,6 @@
             window.print();
         }
 
-        // =========================================================================
-        // 8. INTERACTIVE EDITOR (MODAL EDIT FOTO, CV, GEN 4, EKSPOR/IMPOR)
-        // =========================================================================
         function switchEditTab(tabName) {
             const tabs = ['basic', 'cv', 'children'];
             tabs.forEach(t => {
@@ -2373,19 +2242,16 @@
                 btnDelete.classList.remove('hidden');
             }
 
-            // Isi form identitas dasar
             document.getElementById('edit-name').value = targetMember.name || '';
             document.getElementById('edit-spouse').value = targetMember.spouse || '';
             document.getElementById('edit-status').value = targetMember.status || 'hidup';
             document.getElementById('edit-notes').value = targetMember.notes || '';
 
-            // Isi form foto
             currentEditPhotoData = targetMember.photo || '';
             document.getElementById('edit-photo-file').value = '';
             document.getElementById('edit-photo-url').value = (currentEditPhotoData && !currentEditPhotoData.startsWith('data:')) ? currentEditPhotoData : '';
             updateEditPhotoPreview(currentEditPhotoData, targetMember.name);
 
-            // Isi form CV lengkap
             const cv = targetMember.cv || {};
             document.getElementById('cv-birth-place').value = cv.birthPlace || '';
             document.getElementById('cv-birth-date').value = cv.birthDate || '';
@@ -2819,7 +2685,6 @@
             showToast('Foto, CV & data anggota digabungkan aman ke database');
         }
 
-        // Modal Tambah Cicit Cepat
         function openAddGen4Modal() {
             requireEditAccess(() => _openAddGen4ModalUnlocked());
         }
@@ -2885,7 +2750,6 @@
             showToast(`Berhasil menambahkan ${name} sebagai Generasi 4`);
         }
 
-        // Export, Import & Reset Database
         function exportDataJSON() {
             const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(familyData, null, 2));
             const downloadAnchor = document.createElement('a');
@@ -2900,9 +2764,7 @@
         function triggerImportJSON() {
             requireEditAccess(() => document.getElementById('import-json-input').click());
         }
-        function _unusedTriggerImportJSON() {
-            document.getElementById('import-json-input').click();
-        }
+        
 
         function handleImportJSON(event) {
             const file = event.target.files?.[0];
@@ -2941,9 +2803,6 @@
             showToast('Database dikembalikan ke catatan asli awal');
         }
 
-        // =========================================================================
-        // 9. KONTROL TAMPILAN, ZOOM & DRAG SCROLL
-        // =========================================================================
         let lastBranchSignature = '';
         function renderApp() {
             renderStats();
@@ -3077,7 +2936,6 @@
             renderApp();
         }
 
-        // Ekspos fungsi ke window agar bisa dipanggil oleh atribut onclick HTML
         Object.assign(window, {
             openAddGen4Modal,
             closeAddGen4Modal,
@@ -3119,9 +2977,6 @@
             togglePinLock
         });
 
-        // =========================================================================
-        // 10. INISIALISASI HALAMAN & DATABASE
-        // =========================================================================
         window.addEventListener('DOMContentLoaded', () => {
             const searchInput = document.getElementById('search-input');
             const clearBtn = document.getElementById('clear-search-btn');
