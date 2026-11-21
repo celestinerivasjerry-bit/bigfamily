@@ -204,6 +204,10 @@
                         <i class="fa-solid fa-upload"></i>
                         <span class="hidden sm:inline">Impor</span>
                     </button>
+                    <button id="btn-pin-status" onclick="togglePinLock()" class="inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-950 text-amber-300 border border-emerald-700 font-medium text-sm transition-all active:scale-95" title="Status Kunci Keamanan Edit">
+                        <i id="pin-status-icon" class="fa-solid fa-lock"></i>
+                        <span id="pin-status-label" class="hidden sm:inline">Terkunci</span>
+                    </button>
                 </div>
             </div>
 
@@ -685,6 +689,38 @@
         </div>
     </div>
 
+
+    <!-- ===================================================================== -->
+    <!-- MODAL 5: VERIFIKASI PIN PENGAMAN EDIT KELUARGA                        -->
+    <!-- ===================================================================== -->
+    <div id="pin-modal" class="fixed inset-0 z-[60] hidden overflow-y-auto no-print" role="dialog" aria-modal="true">
+        <div class="flex items-center justify-center min-h-screen px-4 text-center">
+            <div onclick="closePinModal()" class="fixed inset-0 bg-emerald-950/80 backdrop-blur-xs"></div>
+            <div class="relative bg-white rounded-2xl max-w-sm w-full p-6 text-left shadow-2xl border-2 border-gold-400">
+                <div class="w-12 h-12 rounded-2xl bg-emerald-900 text-gold-400 flex items-center justify-center text-xl mb-4 shadow">
+                    <i class="fa-solid fa-shield-halved"></i>
+                </div>
+                <h3 class="text-lg font-extrabold text-emerald-950">Masukkan PIN Keluarga</h3>
+                <p class="text-xs sm:text-sm text-gray-600 mt-1 leading-relaxed">
+                    Untuk menjaga keamanan data dari perubahan tidak sengaja, masukkan kode PIN keluarga sebelum mengedit, menambah, atau menghapus data.
+                </p>
+                <form onsubmit="submitPinVerification(event)" class="mt-4 space-y-3">
+                    <div>
+                        <input type="password" id="family-pin-input" inputmode="numeric" maxlength="12" required placeholder="Masukkan PIN..."
+                            class="w-full px-4 py-3 rounded-xl border border-gray-300 text-center text-lg font-extrabold tracking-widest focus:ring-2 focus:ring-emerald-700 focus:border-emerald-700">
+                        <p id="pin-error-msg" class="hidden text-xs text-red-600 font-semibold mt-1.5 text-center">
+                            <i class="fa-solid fa-circle-exclamation mr-1"></i> PIN salah, silakan coba lagi.
+                        </p>
+                    </div>
+                    <div class="pt-2 flex justify-end gap-2">
+                        <button type="button" onclick="closePinModal()" class="px-4 py-2.5 rounded-xl bg-gray-100 hover:bg-gray-200 text-gray-700 text-xs sm:text-sm font-semibold">Batal</button>
+                        <button type="submit" class="px-5 py-2.5 rounded-xl bg-emerald-900 hover:bg-emerald-800 text-white text-xs sm:text-sm font-bold shadow">Buka Akses Edit</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
     <!-- ===================================================================== -->
     <!-- SCRIPT UTAMA & INTEGRASI DATABASE REAL-TIME                           -->
     <!-- ===================================================================== -->
@@ -929,30 +965,278 @@
             return raw;
         }
 
-        async function saveFamilyData() {
-            // Selalu simpan cadangan lokal di IndexedDB
-            await saveToIndexedDB(familyData);
+        // =========================================================================
+        // PENGAMAN PIN KELUARGA & ANTREAN MUTASI ANTI SALING TIMPA (SMART MERGE)
+        // =========================================================================
+        const FAMILY_EDIT_PIN = "1945"; // Ubah kode PIN 4-6 digit ini sesuai kesepakatan keluarga
+        let isEditUnlocked = sessionStorage.getItem('bani_mashum_unlocked') === 'true';
+        let pendingProtectedAction = null;
 
-            // Sinkronkan ke Supabase
-            if (isSupabaseConnected && supabase) {
-                try {
-                    updateSyncBadge('saving', 'Menyimpan ke Supabase...');
-                    const { error } = await supabase
-                        .from('silsilah_keluarga')
-                        .upsert({
-                            id: RECORD_ID,
-                            payload: familyData,
-                            updated_at: new Date().toISOString()
-                        });
+        function updatePinButtonUI() {
+            const btn = document.getElementById('btn-pin-status');
+            const icon = document.getElementById('pin-status-icon');
+            const label = document.getElementById('pin-status-label');
+            if (!btn || !icon || !label) return;
+            if (isEditUnlocked) {
+                btn.className = "inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-emerald-800 hover:bg-emerald-700 text-emerald-200 border border-emerald-500 font-medium text-sm transition-all active:scale-95";
+                icon.className = "fa-solid fa-lock-open";
+                label.textContent = "Edit Aktif";
+            } else {
+                btn.className = "inline-flex items-center gap-1.5 px-3 py-2.5 rounded-xl bg-emerald-950/80 hover:bg-emerald-950 text-amber-300 border border-emerald-700 font-medium text-sm transition-all active:scale-95";
+                icon.className = "fa-solid fa-lock";
+                label.textContent = "Terkunci";
+            }
+        }
 
-                    if (error) throw error;
-                    updateSyncBadge('online', 'Supabase Real-Time Tersinkron');
-                } catch (err) {
-                    console.error("Gagal sinkronisasi ke Supabase:", err);
-                    updateSyncBadge('offline', 'Tersimpan Lokal (Offline)');
+        function requireEditAccess(callback) {
+            if (isEditUnlocked) {
+                callback();
+                return;
+            }
+            pendingProtectedAction = callback;
+            document.getElementById('pin-error-msg').classList.add('hidden');
+            const input = document.getElementById('family-pin-input');
+            input.value = '';
+            document.getElementById('pin-modal').classList.remove('hidden');
+            setTimeout(() => input.focus(), 100);
+        }
+
+        function closePinModal() {
+            document.getElementById('pin-modal').classList.add('hidden');
+            pendingProtectedAction = null;
+        }
+
+        function submitPinVerification(e) {
+            e.preventDefault();
+            const val = document.getElementById('family-pin-input').value.trim();
+            if (val === FAMILY_EDIT_PIN) {
+                isEditUnlocked = true;
+                sessionStorage.setItem('bani_mashum_unlocked', 'true');
+                updatePinButtonUI();
+                const action = pendingProtectedAction;
+                closePinModal();
+                showToast('Akses edit keluarga berhasil dibuka!');
+                if (typeof action === 'function') action();
+            } else {
+                document.getElementById('pin-error-msg').classList.remove('hidden');
+                document.getElementById('family-pin-input').select();
+            }
+        }
+
+        function togglePinLock() {
+            if (isEditUnlocked) {
+                isEditUnlocked = false;
+                sessionStorage.removeItem('bani_mashum_unlocked');
+                updatePinButtonUI();
+                showToast('Mode edit dikunci kembali (Hanya Baca)', 'info');
+            } else {
+                requireEditAccess(() => {});
+            }
+        }
+
+        // Antrean Mutasi Atomik: menyimpan daftar perubahan spesifik (bukan menimpa seluruh JSON)
+        let pendingMutations = [];
+        let saveDebounceTimer = null;
+        let lastLocalSaveTimestamp = 0;
+        let isSavingToCloud = false;
+
+        // Fungsi murni untuk menerapkan 1 mutasi ke objek silsilah target (lokal maupun dari server)
+        function applySingleMutation(targetData, mut) {
+            if (!targetData || !mut) return;
+            const { type } = mut;
+
+            if (type === 'REPLACE_ALL') {
+                const cloned = normalizeFamilyData(JSON.parse(JSON.stringify(mut.data)));
+                targetData.root = cloned.root;
+                targetData.branches = cloned.branches;
+                return;
+            }
+
+            if (type === 'UPDATE_MEMBER') {
+                const { level, branchId, childId, gen4Id, gen5Id, gen6Id, fields } = mut;
+                let member = null;
+                if (level === 'gen1') member = targetData.root;
+                else if (level === 'gen2') member = targetData.branches.find(b => b.id === branchId);
+                else if (level === 'gen3') {
+                    const b = targetData.branches.find(b => b.id === branchId);
+                    member = b?.children?.find(c => c.id === childId);
+                } else if (level === 'gen4') {
+                    const b = targetData.branches.find(b => b.id === branchId);
+                    const c = b?.children?.find(x => x.id === childId);
+                    member = c?.children?.find(g => g.id === gen4Id);
+                } else if (level === 'gen5') {
+                    const b = targetData.branches.find(b => b.id === branchId);
+                    const c = b?.children?.find(x => x.id === childId);
+                    const g4 = c?.children?.find(g => g.id === gen4Id);
+                    member = g4?.children?.find(g => g.id === gen5Id);
+                } else if (level === 'gen6') {
+                    const b = targetData.branches.find(b => b.id === branchId);
+                    const c = b?.children?.find(x => x.id === childId);
+                    const g4 = c?.children?.find(g => g.id === gen4Id);
+                    const g5 = g4?.children?.find(g => g.id === gen5Id);
+                    member = g5?.children?.find(g => g.id === gen6Id);
                 }
+                if (member && fields) {
+                    Object.assign(member, JSON.parse(JSON.stringify(fields)));
+                }
+                return;
+            }
+
+            if (type === 'ADD_CHILD') {
+                const { targetLevel, branchId, childId, gen4Id, gen5Id, newItem, desiredOrder } = mut;
+                const itemCopy = JSON.parse(JSON.stringify(newItem));
+                if (targetLevel === 'gen3') {
+                    const b = targetData.branches.find(x => x.id === branchId);
+                    if (!b) return;
+                    if (!b.children) b.children = [];
+                    if (!b.children.some(x => x.id === itemCopy.id)) {
+                        if (typeof desiredOrder === 'number' && desiredOrder >= 1 && desiredOrder <= b.children.length) {
+                            b.children.splice(desiredOrder - 1, 0, itemCopy);
+                        } else {
+                            b.children.push(itemCopy);
+                        }
+                        b.children.forEach((c, i) => { c.order = i + 1; });
+                    }
+                } else if (targetLevel === 'gen4') {
+                    const b = targetData.branches.find(x => x.id === branchId);
+                    const c = b?.children?.find(x => x.id === childId);
+                    if (!c) return;
+                    if (!c.children) c.children = [];
+                    if (!c.children.some(x => x.id === itemCopy.id)) c.children.push(itemCopy);
+                } else if (targetLevel === 'gen5') {
+                    const b = targetData.branches.find(x => x.id === branchId);
+                    const c = b?.children?.find(x => x.id === childId);
+                    const g4 = c?.children?.find(x => x.id === gen4Id);
+                    if (!g4) return;
+                    if (!g4.children) g4.children = [];
+                    if (!g4.children.some(x => x.id === itemCopy.id)) g4.children.push(itemCopy);
+                } else if (targetLevel === 'gen6') {
+                    const b = targetData.branches.find(x => x.id === branchId);
+                    const c = b?.children?.find(x => x.id === childId);
+                    const g4 = c?.children?.find(x => x.id === gen4Id);
+                    const g5 = g4?.children?.find(x => x.id === gen5Id);
+                    if (!g5) return;
+                    if (!g5.children) g5.children = [];
+                    if (!g5.children.some(x => x.id === itemCopy.id)) g5.children.push(itemCopy);
+                }
+                return;
+            }
+
+            if (type === 'DELETE_MEMBER') {
+                const { level, branchId, childId, gen4Id, gen5Id, gen6Id } = mut;
+                const b = targetData.branches.find(x => x.id === branchId);
+                if (!b) return;
+                if (level === 'gen3') {
+                    b.children = (b.children || []).filter(x => x.id !== childId);
+                    b.children.forEach((c, i) => { c.order = i + 1; });
+                } else if (level === 'gen4') {
+                    const c = b.children?.find(x => x.id === childId);
+                    if (c && c.children) c.children = c.children.filter(x => x.id !== gen4Id);
+                } else if (level === 'gen5') {
+                    const c = b.children?.find(x => x.id === childId);
+                    const g4 = c?.children?.find(x => x.id === gen4Id);
+                    if (g4 && g4.children) g4.children = g4.children.filter(x => x.id !== gen5Id);
+                } else if (level === 'gen6') {
+                    const c = b.children?.find(x => x.id === childId);
+                    const g4 = c?.children?.find(x => x.id === gen4Id);
+                    const g5 = g4?.children?.find(x => x.id === gen5Id);
+                    if (g5 && g5.children) g5.children = g5.children.filter(x => x.id !== gen6Id);
+                }
+                return;
+            }
+
+            if (type === 'REORDER_GEN3') {
+                const { branchId, orderedIds } = mut;
+                const b = targetData.branches.find(x => x.id === branchId);
+                if (!b || !b.children) return;
+                const map = new Map(b.children.map(c => [c.id, c]));
+                const reordered = [];
+                orderedIds.forEach(id => {
+                    if (map.has(id)) {
+                        reordered.push(map.get(id));
+                        map.delete(id);
+                    }
+                });
+                // Sisipkan anak baru jika ada yang ditambahkan orang lain saat proses geser
+                map.forEach(remaining => reordered.push(remaining));
+                reordered.forEach((c, i) => { c.order = i + 1; });
+                b.children = reordered;
+            }
+        }
+
+        function commitMutation(mutation) {
+            // 1. Terapkan langsung ke tampilan lokal agar instan
+            applySingleMutation(familyData, mutation);
+            saveToIndexedDB(familyData);
+
+            // 2. Masukkan ke antrean sinkronisasi cloud
+            pendingMutations.push(mutation);
+
+            if (isSupabaseConnected && supabase) {
+                updateSyncBadge('saving', 'Menggabungkan & Menyimpan...');
+                clearTimeout(saveDebounceTimer);
+                saveDebounceTimer = setTimeout(() => {
+                    flushSaveToSupabase();
+                }, 300);
             } else {
                 updateSyncBadge('offline', 'Database Lokal Aktif');
+            }
+        }
+
+        async function flushSaveToSupabase() {
+            if (!isSupabaseConnected || !supabase || isSavingToCloud || pendingMutations.length === 0) return;
+            isSavingToCloud = true;
+
+            // Ambil batch mutasi saat ini
+            const batch = pendingMutations.splice(0, pendingMutations.length);
+
+            try {
+                // LANGKAH 1: Tarik (Fetch) versi paling baru dari Supabase detik ini juga
+                const { data: latestRow, error: fetchErr } = await supabase
+                    .from('silsilah_keluarga')
+                    .select('payload')
+                    .eq('id', RECORD_ID)
+                    .maybeSingle();
+
+                if (fetchErr) throw fetchErr;
+
+                // Gunakan data terbaru server sebagai basis penggabungan (merge)
+                let mergedPayload = latestRow && latestRow.payload
+                    ? normalizeFamilyData(latestRow.payload)
+                    : normalizeFamilyData(JSON.parse(JSON.stringify(familyData)));
+
+                // LANGKAH 2: Terapkan (Merge) perubahan spesifik kita di atas data terbaru server
+                batch.forEach(mut => applySingleMutation(mergedPayload, mut));
+
+                // LANGKAH 3: Simpan hasil penggabungan kembali ke Supabase
+                const nowIso = new Date().toISOString();
+                lastLocalSaveTimestamp = Date.now();
+                const { error: upsertErr } = await supabase
+                    .from('silsilah_keluarga')
+                    .upsert({
+                        id: RECORD_ID,
+                        payload: mergedPayload,
+                        updated_at: nowIso
+                    });
+
+                if (upsertErr) throw upsertErr;
+
+                // Perbarui state lokal dengan hasil gabungan terbaru (termasuk editan orang lain)
+                familyData = mergedPayload;
+                saveToIndexedDB(familyData);
+                renderApp();
+                updateSyncBadge('online', 'Tersinkron Aman (Smart Merge)');
+            } catch (err) {
+                console.error("Gagal sinkronisasi Smart Merge ke Supabase:", err);
+                // Kembalikan batch ke depan antrean jika gagal jaringan
+                pendingMutations.unshift(...batch);
+                updateSyncBadge('offline', 'Tersimpan Lokal (Menunggu Koneksi)');
+            } finally {
+                isSavingToCloud = false;
+                // Jika ada mutasi baru yang masuk selama proses simpan tadi, jalankan lagi
+                if (pendingMutations.length > 0) {
+                    setTimeout(() => flushSaveToSupabase(), 250);
+                }
             }
         }
 
@@ -1002,9 +1286,14 @@
                             filter: `id=eq.${RECORD_ID}`
                         },
                         async (change) => {
+                            // Abaikan pantulan (echo) dari penyimpanan kita sendiri dalam 1.5 detik terakhir
+                            if (Date.now() - lastLocalSaveTimestamp < 1500 && !isSavingToCloud) return;
                             if (change.new && change.new.payload) {
-                                familyData = normalizeFamilyData(change.new.payload);
-                                await saveToIndexedDB(familyData);
+                                const incoming = normalizeFamilyData(change.new.payload);
+                                // Tetap pertahankan antrean edit lokal yang sedang berjalan jika ada
+                                pendingMutations.forEach(mut => applySingleMutation(incoming, mut));
+                                familyData = incoming;
+                                saveToIndexedDB(familyData);
                                 renderApp();
                             }
                         }
@@ -1940,7 +2229,7 @@
             if (!file) return;
             try {
                 showToast('Memproses & mengompresi foto...', 'info');
-                const compressedDataUrl = await compressImageFile(file, 360, 0.78);
+                const compressedDataUrl = await compressImageFile(file, 240, 0.72);
                 currentEditPhotoData = compressedDataUrl;
                 document.getElementById('edit-photo-url').value = '';
                 updateEditPhotoPreview(compressedDataUrl, document.getElementById('edit-name').value);
@@ -1966,6 +2255,9 @@
         }
 
         function openEditModal(level, branchId, childId = '', gen4Id = '', gen5Id = '', gen6Id = '') {
+            requireEditAccess(() => _openEditModalUnlocked(level, branchId, childId, gen4Id, gen5Id, gen6Id));
+        }
+        function _openEditModalUnlocked(level, branchId, childId = '', gen4Id = '', gen5Id = '', gen6Id = '') {
             const modal = document.getElementById('detail-modal');
             document.getElementById('edit-level').value = level;
             document.getElementById('edit-branch-id').value = branchId;
@@ -2152,12 +2444,12 @@
             const targetIdx = index + direction;
             if (targetIdx < 0 || targetIdx >= branch.children.length) return;
 
-            const temp = branch.children[index];
-            branch.children[index] = branch.children[targetIdx];
-            branch.children[targetIdx] = temp;
+            const orderedIds = branch.children.map(c => c.id);
+            const tmpId = orderedIds[index];
+            orderedIds[index] = orderedIds[targetIdx];
+            orderedIds[targetIdx] = tmpId;
 
-            branch.children.forEach((c, i) => { c.order = i + 1; });
-            await saveFamilyData();
+            commitMutation({ type: 'REORDER_GEN3', branchId, orderedIds });
             renderGen3ListInModal(branch);
             renderApp();
             showToast('Urutan anak Generasi 3 diperbarui');
@@ -2169,9 +2461,7 @@
             const removed = branch.children[index];
             if (!confirm(`Hapus "${removed.name}" dari daftar anak ${branch.name}?`)) return;
 
-            branch.children.splice(index, 1);
-            branch.children.forEach((c, i) => { c.order = i + 1; });
-            await saveFamilyData();
+            commitMutation({ type: 'DELETE_MEMBER', level: 'gen3', branchId, childId: removed.id });
             renderGen3ListInModal(branch);
             renderApp();
             showToast(`"${removed.name}" dihapus dari Generasi 3`, 'info');
@@ -2237,41 +2527,44 @@
                 };
 
                 const desiredOrder = parseInt(orderInput.value, 10);
-                if (!isNaN(desiredOrder) && desiredOrder >= 1 && desiredOrder <= branch.children.length) {
-                    branch.children.splice(desiredOrder - 1, 0, newChild);
-                } else {
-                    branch.children.push(newChild);
-                }
-
-                branch.children.forEach((c, i) => { c.order = i + 1; });
+                commitMutation({
+                    type: 'ADD_CHILD',
+                    targetLevel: 'gen3',
+                    branchId,
+                    newItem: newChild,
+                    desiredOrder: !isNaN(desiredOrder) ? desiredOrder : null
+                });
                 orderInput.value = branch.children.length + 1;
 
                 nameInput.value = '';
                 spouseInput.value = '';
-                await saveFamilyData();
                 renderGen3ListInModal(branch);
                 renderApp();
-                showToast(`"${nameVal}" ditambahkan ke Generasi 3 & tersimpan ke Supabase`);
+                showToast(`"${nameVal}" ditambahkan ke Generasi 3 & digabungkan aman`);
             } else if (level === 'gen3') {
                 const branch = familyData.branches.find(b => b.id === branchId);
                 const child = branch?.children.find(c => c.id === childId);
                 if (!child) return;
 
-                if (!child.children) child.children = [];
-                child.children.push({
-                    id: 'g4-' + Date.now(),
-                    name: nameVal,
-                    spouse: spouseVal,
-                    status: 'hidup',
-                    photo: '',
-                    notes: '',
-                    cv: {},
-                    children: []
+                commitMutation({
+                    type: 'ADD_CHILD',
+                    targetLevel: 'gen4',
+                    branchId,
+                    childId,
+                    newItem: {
+                        id: 'g4-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+                        name: nameVal,
+                        spouse: spouseVal,
+                        status: 'hidup',
+                        photo: '',
+                        notes: '',
+                        cv: {},
+                        children: []
+                    }
                 });
 
                 nameInput.value = '';
                 spouseInput.value = '';
-                await saveFamilyData();
                 renderGen4ListInModal(child);
                 renderApp();
                 showToast(`"${nameVal}" ditambahkan ke Generasi 4`);
@@ -2281,21 +2574,26 @@
                 const g4 = child?.children?.find(g => g.id === gen4Id);
                 if (!g4) return;
 
-                if (!g4.children) g4.children = [];
-                g4.children.push({
-                    id: 'g5-' + Date.now(),
-                    name: nameVal,
-                    spouse: spouseVal,
-                    status: 'hidup',
-                    photo: '',
-                    notes: '',
-                    cv: {},
-                    children: []
+                commitMutation({
+                    type: 'ADD_CHILD',
+                    targetLevel: 'gen5',
+                    branchId,
+                    childId,
+                    gen4Id,
+                    newItem: {
+                        id: 'g5-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+                        name: nameVal,
+                        spouse: spouseVal,
+                        status: 'hidup',
+                        photo: '',
+                        notes: '',
+                        cv: {},
+                        children: []
+                    }
                 });
 
                 nameInput.value = '';
                 spouseInput.value = '';
-                await saveFamilyData();
                 renderGen5ListInModal(g4);
                 renderApp();
                 showToast(`"${nameVal}" ditambahkan ke Generasi 5 (Piut)`);
@@ -2306,20 +2604,26 @@
                 const g5 = g4?.children?.find(g => g.id === gen5Id);
                 if (!g5) return;
 
-                if (!g5.children) g5.children = [];
-                g5.children.push({
-                    id: 'g6-' + Date.now(),
-                    name: nameVal,
-                    spouse: spouseVal,
-                    status: 'hidup',
-                    photo: '',
-                    notes: '',
-                    cv: {}
+                commitMutation({
+                    type: 'ADD_CHILD',
+                    targetLevel: 'gen6',
+                    branchId,
+                    childId,
+                    gen4Id,
+                    gen5Id,
+                    newItem: {
+                        id: 'g6-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+                        name: nameVal,
+                        spouse: spouseVal,
+                        status: 'hidup',
+                        photo: '',
+                        notes: '',
+                        cv: {}
+                    }
                 });
 
                 nameInput.value = '';
                 spouseInput.value = '';
-                await saveFamilyData();
                 renderGen6ListInModal(g5);
                 renderApp();
                 showToast(`"${nameVal}" ditambahkan ke Generasi 6 (Wareng)`);
@@ -2368,8 +2672,9 @@
             const g5 = g4?.children?.find(g => g.id === gen5Id);
             if (!g5 || !g5.children) return;
 
-            g5.children.splice(index, 1);
-            await saveFamilyData();
+            const targetG6 = g5.children[index];
+            if (!targetG6) return;
+            commitMutation({ type: 'DELETE_MEMBER', level: 'gen6', branchId, childId, gen4Id, gen5Id, gen6Id: targetG6.id });
             renderGen6ListInModal(g5);
             renderApp();
             showToast('Data Generasi 6 dihapus', 'info');
@@ -2414,8 +2719,9 @@
             const g4 = child?.children?.find(g => g.id === gen4Id);
             if (!g4 || !g4.children) return;
 
-            g4.children.splice(index, 1);
-            await saveFamilyData();
+            const targetG5 = g4.children[index];
+            if (!targetG5) return;
+            commitMutation({ type: 'DELETE_MEMBER', level: 'gen5', branchId, childId, gen4Id, gen5Id: targetG5.id });
             renderGen5ListInModal(g4);
             renderApp();
             showToast('Data Generasi 5 dihapus', 'info');
@@ -2428,8 +2734,9 @@
             const child = branch?.children.find(c => c.id === childId);
             if (!child || !child.children) return;
 
-            child.children.splice(index, 1);
-            await saveFamilyData();
+            const targetG4 = child.children[index];
+            if (!targetG4) return;
+            commitMutation({ type: 'DELETE_MEMBER', level: 'gen4', branchId, childId, gen4Id: targetG4.id });
             renderGen4ListInModal(child);
             renderApp();
             showToast('Data Generasi 4 dihapus', 'info');
@@ -2448,25 +2755,17 @@
             if (!child || !child.children) return;
 
             if (level === 'gen4') {
-                child.children = child.children.filter(g => g.id !== gen4Id);
-                await saveFamilyData();
+                commitMutation({ type: 'DELETE_MEMBER', level: 'gen4', branchId, childId, gen4Id });
                 closeDetailModal();
                 renderApp();
                 showToast('Anggota Generasi 4 dihapus dari database', 'info');
             } else if (level === 'gen5') {
-                const g4 = child.children.find(g => g.id === gen4Id);
-                if (!g4 || !g4.children) return;
-                g4.children = g4.children.filter(g => g.id !== gen5Id);
-                await saveFamilyData();
+                commitMutation({ type: 'DELETE_MEMBER', level: 'gen5', branchId, childId, gen4Id, gen5Id });
                 closeDetailModal();
                 renderApp();
                 showToast('Anggota Generasi 5 dihapus dari database', 'info');
             } else if (level === 'gen6') {
-                const g4 = child.children.find(g => g.id === gen4Id);
-                const g5 = g4?.children?.find(g => g.id === gen5Id);
-                if (!g5 || !g5.children) return;
-                g5.children = g5.children.filter(g => g.id !== gen6Id);
-                await saveFamilyData();
+                commitMutation({ type: 'DELETE_MEMBER', level: 'gen6', branchId, childId, gen4Id, gen5Id, gen6Id });
                 closeDetailModal();
                 renderApp();
                 showToast('Anggota Generasi 6 dihapus dari database', 'info');
@@ -2504,43 +2803,27 @@
                 }
             };
 
-            if (level === 'gen1') {
-                Object.assign(familyData.root, updatedFields);
-            } else if (level === 'gen2') {
-                const branch = familyData.branches.find(b => b.id === branchId);
-                if (branch) Object.assign(branch, updatedFields);
-            } else if (level === 'gen3') {
-                const branch = familyData.branches.find(b => b.id === branchId);
-                const child = branch?.children.find(c => c.id === childId);
-                if (child) Object.assign(child, updatedFields);
-            } else if (level === 'gen4') {
-                const branch = familyData.branches.find(b => b.id === branchId);
-                const child = branch?.children.find(c => c.id === childId);
-                const g4 = child?.children?.find(g => g.id === gen4Id);
-                if (g4) Object.assign(g4, updatedFields);
-            } else if (level === 'gen5') {
-                const branch = familyData.branches.find(b => b.id === branchId);
-                const child = branch?.children.find(c => c.id === childId);
-                const g4 = child?.children?.find(g => g.id === gen4Id);
-                const g5 = g4?.children?.find(g => g.id === gen5Id);
-                if (g5) Object.assign(g5, updatedFields);
-            } else if (level === 'gen6') {
-                const branch = familyData.branches.find(b => b.id === branchId);
-                const child = branch?.children.find(c => c.id === childId);
-                const g4 = child?.children?.find(g => g.id === gen4Id);
-                const g5 = g4?.children?.find(g => g.id === gen5Id);
-                const g6 = g5?.children?.find(g => g.id === gen6Id);
-                if (g6) Object.assign(g6, updatedFields);
-            }
+            commitMutation({
+                type: 'UPDATE_MEMBER',
+                level,
+                branchId,
+                childId,
+                gen4Id,
+                gen5Id,
+                gen6Id,
+                fields: updatedFields
+            });
 
-            await saveFamilyData();
             closeDetailModal();
             renderApp();
-            showToast('Foto, CV & data anggota berhasil disimpan ke database');
+            showToast('Foto, CV & data anggota digabungkan aman ke database');
         }
 
         // Modal Tambah Cicit Cepat
         function openAddGen4Modal() {
+            requireEditAccess(() => _openAddGen4ModalUnlocked());
+        }
+        function _openAddGen4ModalUnlocked() {
             const branchSelect = document.getElementById('quick-branch-select');
             branchSelect.innerHTML = familyData.branches.map(b =>
                 `<option value="${b.id}">Anak ke-${b.order}: ${escapeHTML(b.name)} &amp; ${escapeHTML(b.spouse || '-')}</option>`
@@ -2579,19 +2862,24 @@
             const parent = branch?.children.find(c => c.id === parentId);
             if (!parent) return;
 
-            if (!parent.children) parent.children = [];
-            parent.children.push({
-                id: 'g4-' + Date.now(),
-                name,
-                spouse,
-                status: 'hidup',
-                photo: '',
-                notes: '',
-                cv: {}
+            commitMutation({
+                type: 'ADD_CHILD',
+                targetLevel: 'gen4',
+                branchId,
+                childId: parentId,
+                newItem: {
+                    id: 'g4-' + Date.now() + '-' + Math.random().toString(36).slice(2, 6),
+                    name,
+                    spouse,
+                    status: 'hidup',
+                    photo: '',
+                    notes: '',
+                    cv: {},
+                    children: []
+                }
             });
 
             branch.expanded = true;
-            await saveFamilyData();
             closeAddGen4Modal();
             renderApp();
             showToast(`Berhasil menambahkan ${name} sebagai Generasi 4`);
@@ -2610,6 +2898,9 @@
         }
 
         function triggerImportJSON() {
+            requireEditAccess(() => document.getElementById('import-json-input').click());
+        }
+        function _unusedTriggerImportJSON() {
             document.getElementById('import-json-input').click();
         }
 
@@ -2623,8 +2914,7 @@
                     if (!parsed.root || !Array.isArray(parsed.branches)) {
                         throw new Error("Format file tidak sesuai struktur silsilah.");
                     }
-                    familyData = normalizeFamilyData(parsed);
-                    await saveFamilyData();
+                    commitMutation({ type: 'REPLACE_ALL', data: parsed });
                     renderApp();
                     showToast('Database silsilah berhasil dipulihkan dari file JSON!');
                 } catch (err) {
@@ -2645,8 +2935,7 @@
         }
 
         async function executeResetData() {
-            familyData = JSON.parse(JSON.stringify(INITIAL_FAMILY_DATA));
-            await saveFamilyData();
+            commitMutation({ type: 'REPLACE_ALL', data: INITIAL_FAMILY_DATA });
             closeResetModal();
             resetAllFilters();
             showToast('Database dikembalikan ke catatan asli awal');
@@ -2655,9 +2944,14 @@
         // =========================================================================
         // 9. KONTROL TAMPILAN, ZOOM & DRAG SCROLL
         // =========================================================================
+        let lastBranchSignature = '';
         function renderApp() {
             renderStats();
-            populateBranchFilter();
+            const branchSig = familyData.branches.map(b => `${b.id}:${b.name}:${b.children.length}`).join('|');
+            if (branchSig !== lastBranchSignature) {
+                lastBranchSignature = branchSig;
+                populateBranchFilter();
+            }
 
             const filteredBranches = getFilteredBranches();
             const emptyState = document.getElementById('empty-state');
@@ -2819,7 +3113,10 @@
             removeGen5Inline,
             removeGen6Inline,
             deleteCurrentMember,
-            saveMemberChanges
+            saveMemberChanges,
+            closePinModal,
+            submitPinVerification,
+            togglePinLock
         });
 
         // =========================================================================
@@ -2851,6 +3148,7 @@
                 renderApp();
             });
 
+            updatePinButtonUI();
             initTreeDragScroll();
             renderApp();
             initDatabaseConnection();
