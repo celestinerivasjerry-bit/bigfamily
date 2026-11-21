@@ -460,6 +460,7 @@
                     <input type="hidden" id="edit-child-id">
                     <input type="hidden" id="edit-gen4-id">
                     <input type="hidden" id="edit-gen5-id">
+                    <input type="hidden" id="edit-gen6-id">
 
                     <!-- TAB 1: IDENTITAS DASAR & FOTO PROFIL -->
                     <div id="edit-tab-basic" class="space-y-4">
@@ -916,6 +917,11 @@
                         g4.children.forEach(g5 => {
                             g5.cv = g5.cv || {};
                             g5.photo = g5.photo || "";
+                            g5.children = Array.isArray(g5.children) ? g5.children : [];
+                            g5.children.forEach(g6 => {
+                                g6.cv = g6.cv || {};
+                                g6.photo = g6.photo || "";
+                            });
                         });
                     });
                 });
@@ -1149,6 +1155,8 @@
             let gen4Spouses = 0;
             let gen5Count = 0;
             let gen5Spouses = 0;
+            let gen6Count = 0;
+            let gen6Spouses = 0;
             let profilesWithPhotoOrCV = hasFilledCV(familyData.root) ? 1 : 0;
 
             familyData.branches.forEach(b => {
@@ -1168,6 +1176,13 @@
                                 g4.children.forEach(g5 => {
                                     if (g5.spouse && g5.spouse.trim() !== '') gen5Spouses++;
                                     if (hasFilledCV(g5)) profilesWithPhotoOrCV++;
+                                    if (g5.children && Array.isArray(g5.children)) {
+                                        gen6Count += g5.children.length;
+                                        g5.children.forEach(g6 => {
+                                            if (g6.spouse && g6.spouse.trim() !== '') gen6Spouses++;
+                                            if (hasFilledCV(g6)) profilesWithPhotoOrCV++;
+                                        });
+                                    }
                                 });
                             }
                         });
@@ -1175,13 +1190,14 @@
                 });
             });
 
-            const totalRecordedPeople = gen1Individuals + gen2Count + gen2Spouses + gen3Count + gen3Spouses + gen4Count + gen4Spouses + gen5Count + gen5Spouses;
+            const totalRecordedPeople = gen1Individuals + gen2Count + gen2Spouses + gen3Count + gen3Spouses + gen4Count + gen4Spouses + gen5Count + gen5Spouses + gen6Count + gen6Spouses;
 
             return {
                 gen2Count,
                 gen3Count,
                 gen4Count,
                 gen5Count,
+                gen6Count,
                 profilesWithPhotoOrCV,
                 totalRecordedPeople
             };
@@ -1231,9 +1247,9 @@
                     accent: "text-gold-400"
                 },
                 {
-                    label: "Gen 4 & Gen 5",
-                    value: `${stats.gen4Count} Cicit • ${stats.gen5Count} Piut`,
-                    sub: stats.gen5Count > 0 ? "Hingga Generasi 5 tercatat" : "Dapat ditambah hingga Gen 5",
+                    label: "Gen 4, 5 & 6",
+                    value: `${stats.gen4Count} • ${stats.gen5Count} • ${stats.gen6Count}`,
+                    sub: "Cicit (G4) • Piut (G5) • Wareng (G6)",
                     icon: "fa-seedling",
                     accent: "text-emerald-300"
                 },
@@ -1307,7 +1323,9 @@
 
                         const childMatches = memberMatchesSearch(child, q);
                         const gen4Matches = (child.children || []).some(g4 =>
-                            memberMatchesSearch(g4, q) || (g4.children || []).some(g5 => memberMatchesSearch(g5, q))
+                            memberMatchesSearch(g4, q) || (g4.children || []).some(g5 =>
+                                memberMatchesSearch(g5, q) || (g5.children || []).some(g6 => memberMatchesSearch(g6, q))
+                            )
                         );
                         return childMatches || gen4Matches || branchMatchesQuery;
                     });
@@ -1426,20 +1444,42 @@
                                                         ${g4.photo ? `<img src="${escapeHTML(g4.photo)}" class="w-4 h-4 rounded-full object-cover">` : `<strong class="text-emerald-800">${idx + 1}.</strong>`}
                                                         <span class="font-semibold">${highlightText(g4.name, q)}</span>
                                                         ${g4.spouse ? `<span class="text-gray-500">(&amp; ${highlightText(g4.spouse, q)})</span>` : ''}
-                                                        ${gen5List.length > 0 ? `<span class="ml-1 px-1.5 py-0.2 rounded bg-emerald-900 text-gold-300 text-[10px] font-bold">+${gen5List.length} Gen 5</span>` : ''}
+                                                        ${gen5List.length > 0 ? `<span class="ml-1 px-1.5 py-0.2 rounded bg-gold-100 text-emerald-950 border border-gold-400/60 text-[10px] font-bold">+${gen5List.length} Gen 5</span>` : ''}
                                                     </button>
                                                     ${gen5List.length > 0 ? `
-                                                        <div class="ml-4 pl-2.5 border-l border-emerald-700/40 flex flex-wrap items-center gap-1">
-                                                            <span class="text-[10px] font-bold text-emerald-800">Gen 5:</span>
-                                                            ${gen5List.map((g5, g5Idx) => `
-                                                                <button type="button" onclick="openCVModal('gen5', '${branch.id}', '${child.id}', '${g4.id}', '${g5.id}')"
-                                                                    class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-sage-50 hover:bg-gold-100 border border-sage-200 text-[11px] text-gray-800 transition-colors"
-                                                                    title="Lihat Profil & CV ${escapeHTML(g5.name)}">
-                                                                    <strong class="text-emerald-800">${g5Idx + 1}.</strong>
-                                                                    <span class="font-medium">${highlightText(g5.name, q)}</span>
-                                                                    ${g5.spouse ? `<span class="text-gray-500">(&amp; ${highlightText(g5.spouse, q)})</span>` : ''}
-                                                                </button>
-                                                            `).join('')}
+                                                        <div class="ml-4 pl-2.5 border-l border-emerald-700/40 flex flex-col gap-1.5">
+                                                            <div class="flex flex-wrap items-center gap-1.5">
+                                                                <span class="text-[10px] font-bold text-emerald-800">Gen 5:</span>
+                                                                ${gen5List.map((g5, g5Idx) => {
+                                                                    const gen6List = g5.children || [];
+                                                                    return `
+                                                                        <div class="flex flex-col items-start gap-1">
+                                                                            <button type="button" onclick="openCVModal('gen5', '${branch.id}', '${child.id}', '${g4.id}', '${g5.id}')"
+                                                                                class="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-sage-50 hover:bg-gold-100 border border-sage-200 hover:border-gold-400 text-[11px] text-gray-800 transition-colors"
+                                                                                title="Lihat Profil, Foto & CV ${escapeHTML(g5.name)}">
+                                                                                ${g5.photo ? `<img src="${escapeHTML(g5.photo)}" class="w-4 h-4 rounded-full object-cover border border-gold-400/60">` : `<strong class="text-emerald-800">${g5Idx + 1}.</strong>`}
+                                                                                <span class="font-semibold">${highlightText(g5.name, q)}</span>
+                                                                                ${g5.spouse ? `<span class="text-gray-500">(&amp; ${highlightText(g5.spouse, q)})</span>` : ''}
+                                                                                ${gen6List.length > 0 ? `<span class="ml-0.5 px-1.5 py-0.2 rounded bg-gold-100 text-emerald-950 border border-gold-400/60 text-[9px] font-bold">+${gen6List.length} Gen 6</span>` : ''}
+                                                                            </button>
+                                                                            ${gen6List.length > 0 ? `
+                                                                                <div class="ml-3 pl-2 border-l border-gold-500/50 flex flex-wrap items-center gap-1">
+                                                                                    <span class="text-[9px] font-bold text-sage-700">Gen 6:</span>
+                                                                                    ${gen6List.map((g6, g6Idx) => `
+                                                                                        <button type="button" onclick="openCVModal('gen6', '${branch.id}', '${child.id}', '${g4.id}', '${g5.id}', '${g6.id}')"
+                                                                                            class="inline-flex items-center gap-1 px-2 py-0.5 rounded-md bg-white hover:bg-gold-100 border border-cream-300 text-[10px] text-gray-800 transition-colors"
+                                                                                            title="Lihat Profil, Foto & CV ${escapeHTML(g6.name)}">
+                                                                                            ${g6.photo ? `<img src="${escapeHTML(g6.photo)}" class="w-3.5 h-3.5 rounded-full object-cover">` : `<strong class="text-emerald-800">${g6Idx + 1}.</strong>`}
+                                                                                            <span class="font-medium">${highlightText(g6.name, q)}</span>
+                                                                                            ${g6.spouse ? `<span class="text-gray-500">(&amp; ${highlightText(g6.spouse, q)})</span>` : ''}
+                                                                                        </button>
+                                                                                    `).join('')}
+                                                                                </div>
+                                                                            ` : ''}
+                                                                        </div>
+                                                                    `;
+                                                                }).join('')}
+                                                            </div>
                                                         </div>
                                                     ` : ''}
                                                 </div>
@@ -1636,7 +1676,7 @@
         // =========================================================================
         // 7. TAMPILAN MODAL CV / BIOGRAFI LENGKAP ANGGOTA
         // =========================================================================
-        function openCVModal(level, branchId, childId = '', gen4Id = '', gen5Id = '') {
+        function openCVModal(level, branchId, childId = '', gen4Id = '', gen5Id = '', gen6Id = '') {
             let member = null;
             let genLabel = '';
             let lineageHTML = '';
@@ -1703,7 +1743,26 @@
                     <p><strong>Buyut (Gen 2):</strong> ${escapeHTML(branch.name)} &amp; ${escapeHTML(branch.spouse || 'Pasangan')}</p>
                     <p><strong>Canggah (Gen 1):</strong> ${escapeHTML(familyData.root.name)} &amp; ${escapeHTML(familyData.root.spouse)}</p>
                 `;
-                childrenHTML = 'Generasi ke-5 (Piut) Bani H. Ma\'shum &amp; Nyai Masrobatun';
+                const g6List = g5.children || [];
+                childrenHTML = g6List.length > 0
+                    ? g6List.map((g, idx) => `${idx + 1}. ${escapeHTML(g.name)}`).join(' • ')
+                    : 'Belum ada data Generasi 6 (Wareng) tercatat';
+            } else if (level === 'gen6') {
+                const branch = familyData.branches.find(b => b.id === branchId);
+                const child = branch?.children.find(c => c.id === childId);
+                const g4 = child?.children?.find(g => g.id === gen4Id);
+                const g5 = g4?.children?.find(g => g.id === gen5Id);
+                const g6 = g5?.children?.find(g => g.id === gen6Id);
+                if (!branch || !child || !g4 || !g5 || !g6) return;
+                member = g6;
+                genLabel = `Generasi 6 • Wareng (Cabang ${branch.name})`;
+                lineageHTML = `
+                    <p><strong>Orang Tua (Gen 5):</strong> ${escapeHTML(g5.name)} &amp; ${escapeHTML(g5.spouse || 'Pasangan')}</p>
+                    <p><strong>Kakek/Nenek (Gen 4):</strong> ${escapeHTML(g4.name)} &amp; ${escapeHTML(g4.spouse || 'Pasangan')}</p>
+                    <p><strong>Buyut (Gen 3):</strong> ${escapeHTML(child.name)} &amp; ${escapeHTML(branch.name)}</p>
+                    <p><strong>Leluhur Utama (Gen 1):</strong> ${escapeHTML(familyData.root.name)} &amp; ${escapeHTML(familyData.root.spouse)}</p>
+                `;
+                childrenHTML = 'Generasi ke-6 (Wareng) Bani H. Ma\'shum &amp; Nyai Masrobatun';
             }
 
             const cv = member.cv || {};
@@ -1821,7 +1880,7 @@
             const editBtn = document.getElementById('cv-btn-switch-edit');
             editBtn.onclick = () => {
                 closeCVModal();
-                openEditModal(level, branchId, childId, gen4Id, gen5Id);
+                openEditModal(level, branchId, childId, gen4Id, gen5Id, gen6Id);
             };
 
             document.getElementById('cv-view-modal').classList.remove('hidden');
@@ -1906,13 +1965,14 @@
             showToast('Foto dihapus dari pratinjau', 'info');
         }
 
-        function openEditModal(level, branchId, childId = '', gen4Id = '', gen5Id = '') {
+        function openEditModal(level, branchId, childId = '', gen4Id = '', gen5Id = '', gen6Id = '') {
             const modal = document.getElementById('detail-modal');
             document.getElementById('edit-level').value = level;
             document.getElementById('edit-branch-id').value = branchId;
             document.getElementById('edit-child-id').value = childId;
             document.getElementById('edit-gen4-id').value = gen4Id;
             document.getElementById('edit-gen5-id').value = gen5Id;
+            document.getElementById('edit-gen6-id').value = gen6Id;
 
             const genBadge = document.getElementById('modal-gen-badge');
             const title = document.getElementById('modal-title');
@@ -1996,6 +2056,27 @@
                 lineageInfo.innerHTML = `
                     <p><strong>Orang Tua (Gen 4):</strong> ${escapeHTML(g4.name)} &amp; ${escapeHTML(g4.spouse || 'Pasangan')}</p>
                     <p><strong>Kakek/Nenek (Gen 3):</strong> ${escapeHTML(child.name)} &amp; ${escapeHTML(branch.name)}</p>
+                `;
+                tabChildrenBtn.classList.remove('hidden');
+                document.getElementById('tab-btn-children-label').textContent = `Keturunan (Gen 6)`;
+                document.getElementById('children-tab-heading').innerHTML = `<i class="fa-solid fa-children text-gold-600"></i> Daftar Putra/Putri (Generasi 6 / Wareng)`;
+                document.getElementById('children-add-heading').textContent = `Tambah Anak (Generasi 6):`;
+                document.getElementById('new-gen3-order').classList.add('hidden');
+                renderGen6ListInModal(g5);
+                btnDelete.classList.remove('hidden');
+            } else if (level === 'gen6') {
+                const branch = familyData.branches.find(b => b.id === branchId);
+                const child = branch?.children.find(c => c.id === childId);
+                const g4 = child?.children?.find(g => g.id === gen4Id);
+                const g5 = g4?.children?.find(g => g.id === gen5Id);
+                const g6 = g5?.children?.find(g => g.id === gen6Id);
+                if (!branch || !child || !g4 || !g5 || !g6) return;
+                targetMember = g6;
+                genBadge.textContent = `Generasi 6 • Wareng`;
+                title.textContent = `Edit Profil: ${g6.name}`;
+                lineageInfo.innerHTML = `
+                    <p><strong>Orang Tua (Gen 5):</strong> ${escapeHTML(g5.name)} &amp; ${escapeHTML(g5.spouse || 'Pasangan')}</p>
+                    <p><strong>Kakek/Nenek (Gen 4):</strong> ${escapeHTML(g4.name)} &amp; ${escapeHTML(child.name)}</p>
                 `;
                 btnDelete.classList.remove('hidden');
             }
@@ -2129,6 +2210,7 @@
             const branchId = document.getElementById('edit-branch-id').value;
             const childId = document.getElementById('edit-child-id').value;
             const gen4Id = document.getElementById('edit-gen4-id').value;
+            const gen5Id = document.getElementById('edit-gen5-id').value;
             const nameInput = document.getElementById('new-gen4-name');
             const spouseInput = document.getElementById('new-gen4-spouse');
             const orderInput = document.getElementById('new-gen3-order');
@@ -2207,7 +2289,8 @@
                     status: 'hidup',
                     photo: '',
                     notes: '',
-                    cv: {}
+                    cv: {},
+                    children: []
                 });
 
                 nameInput.value = '';
@@ -2216,7 +2299,80 @@
                 renderGen5ListInModal(g4);
                 renderApp();
                 showToast(`"${nameVal}" ditambahkan ke Generasi 5 (Piut)`);
+            } else if (level === 'gen5') {
+                const branch = familyData.branches.find(b => b.id === branchId);
+                const child = branch?.children.find(c => c.id === childId);
+                const g4 = child?.children?.find(g => g.id === gen4Id);
+                const g5 = g4?.children?.find(g => g.id === gen5Id);
+                if (!g5) return;
+
+                if (!g5.children) g5.children = [];
+                g5.children.push({
+                    id: 'g6-' + Date.now(),
+                    name: nameVal,
+                    spouse: spouseVal,
+                    status: 'hidup',
+                    photo: '',
+                    notes: '',
+                    cv: {}
+                });
+
+                nameInput.value = '';
+                spouseInput.value = '';
+                await saveFamilyData();
+                renderGen6ListInModal(g5);
+                renderApp();
+                showToast(`"${nameVal}" ditambahkan ke Generasi 6 (Wareng)`);
             }
+        }
+
+        function renderGen6ListInModal(g5) {
+            const listContainer = document.getElementById('gen4-list');
+            const gen6 = g5.children || [];
+            if (gen6.length === 0) {
+                listContainer.innerHTML = `<p class="text-xs text-gray-500 italic py-2">Belum ada data Generasi 6 (wareng) yang tercatat.</p>`;
+                return;
+            }
+            const branchId = document.getElementById('edit-branch-id').value;
+            const childId = document.getElementById('edit-child-id').value;
+            const gen4Id = document.getElementById('edit-gen4-id').value;
+            listContainer.innerHTML = gen6.map((item, idx) => `
+                <div class="flex items-center justify-between bg-cream-50 border border-cream-300 px-3 py-2 rounded-xl text-xs">
+                    <div class="flex items-center gap-2">
+                        ${renderAvatarHTML(item, 'w-7 h-7 text-[10px]', 'rounded-lg')}
+                        <div>
+                            <span class="font-bold text-gray-900">${idx + 1}. ${escapeHTML(item.name)}</span>
+                            ${item.spouse ? `<span class="text-gray-500 ml-1">(&amp; ${escapeHTML(item.spouse)})</span>` : ''}
+                        </div>
+                    </div>
+                    <div class="flex items-center gap-1">
+                        <button type="button" onclick="openEditModal('gen6', '${branchId}', '${childId}', '${gen4Id}', '${g5.id}', '${item.id}')" class="text-emerald-800 hover:bg-emerald-100 px-2 py-1 rounded-lg font-semibold" title="Edit Foto & CV Wareng">
+                            <i class="fa-solid fa-pen"></i> Edit CV
+                        </button>
+                        <button type="button" onclick="removeGen6Inline(${idx})" class="text-red-600 hover:bg-red-100 px-2 py-1 rounded-lg" title="Hapus">
+                            <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+        }
+
+        async function removeGen6Inline(index) {
+            const branchId = document.getElementById('edit-branch-id').value;
+            const childId = document.getElementById('edit-child-id').value;
+            const gen4Id = document.getElementById('edit-gen4-id').value;
+            const gen5Id = document.getElementById('edit-gen5-id').value;
+            const branch = familyData.branches.find(b => b.id === branchId);
+            const child = branch?.children.find(c => c.id === childId);
+            const g4 = child?.children?.find(g => g.id === gen4Id);
+            const g5 = g4?.children?.find(g => g.id === gen5Id);
+            if (!g5 || !g5.children) return;
+
+            g5.children.splice(index, 1);
+            await saveFamilyData();
+            renderGen6ListInModal(g5);
+            renderApp();
+            showToast('Data Generasi 6 dihapus', 'info');
         }
 
         function renderGen5ListInModal(g4) {
@@ -2285,6 +2441,7 @@
             const childId = document.getElementById('edit-child-id').value;
             const gen4Id = document.getElementById('edit-gen4-id').value;
             const gen5Id = document.getElementById('edit-gen5-id').value;
+            const gen6Id = document.getElementById('edit-gen6-id').value;
 
             const branch = familyData.branches.find(b => b.id === branchId);
             const child = branch?.children.find(c => c.id === childId);
@@ -2304,6 +2461,15 @@
                 closeDetailModal();
                 renderApp();
                 showToast('Anggota Generasi 5 dihapus dari database', 'info');
+            } else if (level === 'gen6') {
+                const g4 = child.children.find(g => g.id === gen4Id);
+                const g5 = g4?.children?.find(g => g.id === gen5Id);
+                if (!g5 || !g5.children) return;
+                g5.children = g5.children.filter(g => g.id !== gen6Id);
+                await saveFamilyData();
+                closeDetailModal();
+                renderApp();
+                showToast('Anggota Generasi 6 dihapus dari database', 'info');
             }
         }
 
@@ -2314,6 +2480,7 @@
             const childId = document.getElementById('edit-child-id').value;
             const gen4Id = document.getElementById('edit-gen4-id').value;
             const gen5Id = document.getElementById('edit-gen5-id').value;
+            const gen6Id = document.getElementById('edit-gen6-id').value;
 
             const newName = document.getElementById('edit-name').value.trim();
             if (!newName) return;
@@ -2357,6 +2524,13 @@
                 const g4 = child?.children?.find(g => g.id === gen4Id);
                 const g5 = g4?.children?.find(g => g.id === gen5Id);
                 if (g5) Object.assign(g5, updatedFields);
+            } else if (level === 'gen6') {
+                const branch = familyData.branches.find(b => b.id === branchId);
+                const child = branch?.children.find(c => c.id === childId);
+                const g4 = child?.children?.find(g => g.id === gen4Id);
+                const g5 = g4?.children?.find(g => g.id === gen5Id);
+                const g6 = g5?.children?.find(g => g.id === gen6Id);
+                if (g6) Object.assign(g6, updatedFields);
             }
 
             await saveFamilyData();
@@ -2643,6 +2817,7 @@
             removeGen3Inline,
             removeGen4Inline,
             removeGen5Inline,
+            removeGen6Inline,
             deleteCurrentMember,
             saveMemberChanges
         });
